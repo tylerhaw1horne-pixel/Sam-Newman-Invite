@@ -3,37 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recovered Emergency Signal // Black Level</title>
+  <title>Emergency Override // Priority File</title>
   <style>
     :root{
       --bg:#000000;
       --bg2:#050505;
-      --bg3:#0b0b0b;
-      --fg:#f4efe8;
-      --muted:#a1978e;
-      --red:#8f0808;
-      --red2:#ff3c3c;
-      --amber:#c59a4d;
-      --line:rgba(255,255,255,.08);
-      --glass:rgba(255,255,255,.03);
-      --shadow:0 0 40px rgba(255,0,0,.08), 0 0 120px rgba(255,255,255,.03);
+      --bg3:#0c0c0c;
+      --panel:rgba(7,7,7,.82);
+      --panel2:rgba(13,13,13,.92);
+      --line:rgba(255,255,255,.09);
+      --soft:rgba(255,255,255,.04);
+      --text:#f4efe7;
+      --muted:#a69b91;
+      --red:#9d0d0d;
+      --red2:#ff4747;
+      --amber:#d3a358;
+      --shadow:0 0 40px rgba(255,0,0,.07), 0 0 100px rgba(255,255,255,.03);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
+
     html,body{
       width:100%;
       height:100%;
       overflow:hidden;
       background:#000;
-      color:var(--fg);
+      color:var(--text);
       font-family:"Courier New", Courier, monospace;
     }
 
     body{
       background:
-        radial-gradient(circle at 50% 48%, rgba(255,255,255,.012), transparent 32%),
-        radial-gradient(circle at 50% 86%, rgba(120,0,0,.10), transparent 28%),
-        linear-gradient(180deg,#000,#030303 38%,#000 100%);
+        radial-gradient(circle at 50% 40%, rgba(255,255,255,.012), transparent 28%),
+        radial-gradient(circle at 50% 88%, rgba(140,0,0,.10), transparent 30%),
+        linear-gradient(180deg,#000 0%, #050505 34%, #000 100%);
     }
 
     canvas{
@@ -45,7 +48,20 @@
       z-index:0;
     }
 
-    .crt,.scanlines,.noise,.tracking,.flicker,.flash,.vignette,.chromatic,.dust,.ghostBand,.rollingStatic,.warningTint{
+    .crt,
+    .scanlines,
+    .noise,
+    .tracking,
+    .flicker,
+    .flashWhite,
+    .flashRed,
+    .vignette,
+    .chromatic,
+    .dust,
+    .ghostBand,
+    .rollingStatic,
+    .alertTint,
+    .frameGhost{
       position:fixed;
       inset:0;
       pointer-events:none;
@@ -54,7 +70,7 @@
     .crt{
       z-index:4;
       background:
-        radial-gradient(circle at center, transparent 50%, rgba(0,0,0,.18) 76%, rgba(0,0,0,.45) 100%);
+        radial-gradient(circle at center, transparent 48%, rgba(0,0,0,.14) 72%, rgba(0,0,0,.46) 100%);
     }
 
     .scanlines{
@@ -63,8 +79,8 @@
       background:
         repeating-linear-gradient(
           to bottom,
-          rgba(255,255,255,.05) 0px,
-          rgba(255,255,255,.05) 1px,
+          rgba(255,255,255,.045) 0px,
+          rgba(255,255,255,.045) 1px,
           transparent 2px,
           transparent 4px
         );
@@ -74,12 +90,12 @@
 
     .noise{
       z-index:6;
-      opacity:.05;
+      opacity:.045;
       background-image:
         radial-gradient(circle, rgba(255,255,255,.8) .7px, transparent 1px);
       background-size:4px 4px;
       mix-blend-mode:screen;
-      animation:noiseShift .15s steps(3) infinite;
+      animation:noiseShift .14s steps(3) infinite;
     }
 
     .tracking{
@@ -93,65 +109,76 @@
           rgba(255,255,255,.03) 54%,
           transparent 100%);
       transform:translateY(-120%);
-      animation:trackingBar 9s linear infinite;
+      animation:trackingBar 8.5s linear infinite;
     }
 
     .rollingStatic{
       z-index:8;
-      opacity:.05;
+      opacity:.055;
       background:
-        linear-gradient(180deg, transparent, rgba(255,255,255,.12), transparent);
+        linear-gradient(180deg, transparent, rgba(255,255,255,.11), transparent);
       transform:translateY(-120%);
-      animation:trackingBar 4.2s linear infinite;
+      animation:trackingBar 4.1s linear infinite;
       mix-blend-mode:screen;
     }
 
     .ghostBand{
       z-index:9;
-      opacity:.07;
+      opacity:.075;
       background:
         linear-gradient(90deg,
           transparent 0%,
-          rgba(255,255,255,.10) 18%,
-          transparent 35%,
-          rgba(255,255,255,.07) 62%,
+          rgba(255,255,255,.11) 18%,
+          transparent 34%,
+          rgba(255,255,255,.08) 62%,
           transparent 100%);
       transform:translateX(-120%);
-      animation:ghostSweep 11s linear infinite;
+      animation:ghostSweep 10s linear infinite;
       mix-blend-mode:screen;
     }
 
-    .flicker{
+    .frameGhost{
       z-index:10;
+      opacity:.03;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.6), transparent 12%, transparent 88%, rgba(255,255,255,.5)),
+        linear-gradient(180deg, rgba(255,255,255,.2), transparent 10%, transparent 90%, rgba(255,255,255,.15));
+      transform:scale(1.01);
+      mix-blend-mode:screen;
+      animation:flicker 3.8s infinite;
+    }
+
+    .flicker{
+      z-index:11;
       background:rgba(255,255,255,.018);
       opacity:0;
       animation:flicker 3.1s infinite;
     }
 
-    .warningTint{
-      z-index:11;
+    .alertTint{
+      z-index:12;
       background:
-        radial-gradient(circle at 50% 90%, rgba(255,0,0,.05), transparent 30%),
-        radial-gradient(circle at 16% 12%, rgba(255,130,0,.03), transparent 18%),
-        radial-gradient(circle at 82% 16%, rgba(255,130,0,.02), transparent 16%);
+        radial-gradient(circle at 50% 88%, rgba(255,0,0,.05), transparent 30%),
+        radial-gradient(circle at 16% 14%, rgba(255,120,0,.03), transparent 18%),
+        radial-gradient(circle at 82% 16%, rgba(255,120,0,.02), transparent 16%);
       mix-blend-mode:screen;
     }
 
     .vignette{
-      z-index:12;
+      z-index:13;
       background:
-        radial-gradient(circle at center, transparent 46%, rgba(0,0,0,.10) 60%, rgba(0,0,0,.50) 100%);
+        radial-gradient(circle at center, transparent 44%, rgba(0,0,0,.12) 60%, rgba(0,0,0,.52) 100%);
     }
 
     .chromatic{
-      z-index:13;
+      z-index:14;
       box-shadow:
         inset 2px 0 0 rgba(255,0,0,.025),
         inset -2px 0 0 rgba(0,140,255,.02);
     }
 
     .dust{
-      z-index:14;
+      z-index:15;
       background:
         radial-gradient(circle at 16% 26%, rgba(255,255,255,.04) 0 1px, transparent 2px),
         radial-gradient(circle at 68% 34%, rgba(255,255,255,.03) 0 1px, transparent 2px),
@@ -162,22 +189,24 @@
       opacity:.35;
     }
 
-    .flash{
-      z-index:90;
-      background:#fff;
+    .flashWhite,
+    .flashRed{
+      z-index:100;
       opacity:0;
     }
 
-    .flash.on{ animation:hardFlash .22s ease-out; }
-    .flash.red{ background:#a30000; }
-    .flash.red.on{ animation:redFlash .35s ease-out; }
+    .flashWhite{background:#fff}
+    .flashRed{background:#8f0000}
+
+    .flashWhite.on{animation:hardFlash .20s ease-out}
+    .flashRed.on{animation:redFlash .34s ease-out}
 
     .shell{
       position:relative;
       z-index:20;
       width:100%;
       height:100%;
-      padding:20px;
+      padding:18px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -185,15 +214,15 @@
 
     .frame{
       position:relative;
-      width:min(1080px,100%);
-      min-height:min(92vh,810px);
+      width:min(1120px,100%);
+      min-height:min(93vh,840px);
       border:1px solid rgba(255,255,255,.08);
       background:
-        linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.010)),
-        rgba(0,0,0,.42);
-      backdrop-filter:blur(5px);
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.008)),
+        rgba(0,0,0,.52);
       box-shadow:var(--shadow);
       overflow:hidden;
+      backdrop-filter:blur(5px);
     }
 
     .frame::before{
@@ -202,7 +231,7 @@
       inset:0;
       background:linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
       transform:translateX(-130%);
-      animation:sweep 10s linear infinite;
+      animation:sweep 9s linear infinite;
       pointer-events:none;
     }
 
@@ -210,7 +239,7 @@
       content:"";
       position:absolute;
       inset:10px;
-      border:1px solid rgba(143,8,8,.16);
+      border:1px solid rgba(157,13,13,.18);
       pointer-events:none;
     }
 
@@ -219,7 +248,7 @@
       top:0;
       left:0;
       right:0;
-      z-index:30;
+      z-index:40;
       display:flex;
       justify-content:space-between;
       gap:12px;
@@ -227,17 +256,17 @@
       font-size:10px;
       letter-spacing:.22em;
       text-transform:uppercase;
-      color:#ddd3cb;
+      color:#ddd2ca;
       pointer-events:none;
     }
 
     .panel{
+      min-width:260px;
       border:1px solid rgba(255,255,255,.08);
-      background:rgba(0,0,0,.22);
+      background:rgba(0,0,0,.24);
       padding:10px 12px;
-      min-width:240px;
+      box-shadow:0 0 14px rgba(0,0,0,.2);
       backdrop-filter:blur(2px);
-      box-shadow:0 0 14px rgba(0,0,0,.18);
     }
 
     .rec{
@@ -246,7 +275,9 @@
       font-weight:bold;
     }
 
-    .warn{ color:#d59f4d; }
+    .warn{
+      color:var(--amber);
+    }
 
     .batteryWrap{
       display:inline-flex;
@@ -255,7 +286,7 @@
     }
 
     .battery{
-      width:74px;
+      width:76px;
       height:10px;
       border:1px solid rgba(255,255,255,.55);
       position:relative;
@@ -273,10 +304,10 @@
 
     .batteryFill{
       height:100%;
-      width:9%;
+      width:8%;
       background:linear-gradient(90deg,#420000,#ff2525);
       box-shadow:0 0 8px rgba(255,0,0,.45);
-      animation:batteryPulse 2.4s ease-in-out infinite;
+      animation:batteryPulse 2.2s ease-in-out infinite;
     }
 
     .section{
@@ -287,7 +318,7 @@
       align-items:center;
       justify-content:center;
       text-align:center;
-      padding:72px 36px 58px;
+      padding:82px 36px 62px;
       opacity:0;
       visibility:hidden;
       transform:scale(1.015);
@@ -309,39 +340,70 @@
     }
 
     .title{
-      max-width:980px;
-      font-size:clamp(36px,7vw,92px);
-      line-height:.92;
+      max-width:1000px;
+      font-size:clamp(38px,7vw,96px);
+      line-height:.91;
       letter-spacing:.07em;
       text-transform:uppercase;
       color:#f6f1eb;
       text-shadow:
         0 0 10px rgba(255,255,255,.05),
-        0 0 28px rgba(255,0,0,.11);
+        0 0 30px rgba(255,0,0,.11);
     }
 
-    .title .red{ color:#e13f3f; }
-    .title .amber{ color:#d7a45a; }
+    .title .red{color:#e13f3f}
+    .title .amber{color:#d6a358}
 
     .subtitle{
-      max-width:820px;
+      max-width:840px;
       margin-top:18px;
       font-size:clamp(14px,2vw,18px);
-      line-height:1.9;
-      color:#ddd3ca;
+      line-height:1.92;
+      color:#ded4cb;
     }
 
     .divider{
-      width:140px;
+      width:150px;
       height:1px;
       margin-top:24px;
       background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);
     }
 
+    .alertCard{
+      width:min(900px,100%);
+      margin-top:22px;
+      border:1px solid rgba(255,255,255,.10);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+        rgba(0,0,0,.50);
+      box-shadow:0 0 24px rgba(255,0,0,.08);
+      padding:24px 22px;
+      text-align:left;
+    }
+
+    .alertRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding-bottom:12px;
+      margin-bottom:14px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      font-size:11px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color:#cfc3b7;
+    }
+
+    .alertText{
+      font-size:15px;
+      line-height:1.88;
+      color:#e5d9cf;
+    }
+
     .typebox{
-      min-height:180px;
-      max-width:860px;
-      margin-top:28px;
+      min-height:195px;
+      max-width:880px;
+      margin-top:26px;
       font-size:clamp(16px,2vw,22px);
       line-height:1.95;
       color:#f0e7df;
@@ -383,40 +445,9 @@
       animation:glitch2 .9s infinite linear alternate-reverse;
     }
 
-    .alertCard{
-      width:min(860px,100%);
-      border:1px solid rgba(255,255,255,.10);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-        rgba(0,0,0,.46);
-      box-shadow:0 0 24px rgba(255,0,0,.08);
-      padding:26px 24px;
-      text-align:left;
-      margin-top:22px;
-    }
-
-    .alertRow{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      font-size:11px;
-      letter-spacing:.22em;
-      text-transform:uppercase;
-      color:#cfc2b7;
-      padding-bottom:12px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      margin-bottom:14px;
-    }
-
-    .alertText{
-      font-size:15px;
-      line-height:1.9;
-      color:#e5d9cf;
-    }
-
     .profileWrap{
       width:100%;
-      max-width:920px;
+      max-width:950px;
       display:grid;
       grid-template-columns:1fr;
       gap:22px;
@@ -427,11 +458,11 @@
       position:relative;
       border:1px solid rgba(255,255,255,.10);
       background:
-        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)),
-        rgba(0,0,0,.48);
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
+        rgba(0,0,0,.56);
       padding:34px 32px;
       overflow:hidden;
-      box-shadow:0 0 24px rgba(255,0,0,.07);
+      box-shadow:0 0 24px rgba(255,0,0,.08);
     }
 
     .profileCard::before{
@@ -444,16 +475,25 @@
       pointer-events:none;
     }
 
+    .profileMeta{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:18px;
+      align-items:start;
+      padding-bottom:16px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
     .label{
       font-size:11px;
-      color:#baa99a;
+      color:#b9aa9b;
       letter-spacing:.30em;
       text-transform:uppercase;
       margin-bottom:12px;
     }
 
     .name{
-      font-size:clamp(36px,6vw,82px);
+      font-size:clamp(38px,6vw,86px);
       line-height:.92;
       text-transform:uppercase;
       color:#fff8f3;
@@ -468,8 +508,21 @@
       text-transform:uppercase;
     }
 
+    .stamp{
+      border:1px solid rgba(255,80,80,.35);
+      color:#ff7b7b;
+      padding:10px 12px;
+      font-size:11px;
+      letter-spacing:.20em;
+      text-transform:uppercase;
+      transform:rotate(-3deg);
+      box-shadow:0 0 18px rgba(255,0,0,.08);
+      align-self:start;
+      white-space:nowrap;
+    }
+
     .desc{
-      margin-top:18px;
+      margin-top:20px;
       font-size:16px;
       line-height:2;
       color:#e8ddd5;
@@ -488,8 +541,8 @@
     .ask{
       margin-top:30px;
       text-align:center;
-      font-size:clamp(24px,4vw,48px);
-      line-height:1.15;
+      font-size:clamp(26px,4vw,50px);
+      line-height:1.14;
       text-transform:uppercase;
       letter-spacing:.08em;
       color:#fff;
@@ -514,7 +567,7 @@
     }
 
     .btn{
-      min-width:210px;
+      min-width:220px;
       padding:14px 18px;
       border:1px solid rgba(255,255,255,.16);
       background:
@@ -551,7 +604,7 @@
     .btnMain{
       border-color:rgba(255,59,59,.42);
       background:
-        linear-gradient(180deg, rgba(181,13,13,.24), rgba(38,0,0,.34)),
+        linear-gradient(180deg, rgba(157,13,13,.26), rgba(38,0,0,.34)),
         rgba(15,5,5,.88);
       box-shadow:0 0 18px rgba(255,0,0,.12);
     }
@@ -561,7 +614,7 @@
       left:18px;
       right:18px;
       bottom:16px;
-      z-index:35;
+      z-index:45;
       display:flex;
       justify-content:space-between;
       gap:12px;
@@ -572,9 +625,9 @@
       pointer-events:none;
     }
 
-    .footer .danger{ color:#d04a4a; }
+    .footer .danger{color:#d04a4a}
 
-    @media (max-width:780px){
+    @media (max-width:840px){
       .shell{padding:10px}
       .topbar{
         padding:10px;
@@ -589,10 +642,19 @@
         flex-direction:column;
         align-items:flex-start;
       }
-      .profileCard,.alertCard{
+      .profileCard,
+      .alertCard{
         padding:24px 18px;
       }
-      .btn{min-width:180px}
+      .profileMeta{
+        grid-template-columns:1fr;
+      }
+      .stamp{
+        justify-self:start;
+      }
+      .btn{
+        min-width:180px;
+      }
     }
 
     @keyframes blink{50%{opacity:.2}}
@@ -631,7 +693,7 @@
     }
     @keyframes redFlash{
       0%{opacity:0}
-      15%{opacity:.45}
+      15%{opacity:.42}
       100%{opacity:0}
     }
     @keyframes sweep{0%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
@@ -669,21 +731,22 @@
   <div class="tracking"></div>
   <div class="rollingStatic"></div>
   <div class="ghostBand"></div>
+  <div class="frameGhost"></div>
   <div class="flicker"></div>
-  <div class="warningTint"></div>
+  <div class="alertTint"></div>
   <div class="vignette"></div>
   <div class="chromatic"></div>
   <div class="dust"></div>
-  <div class="flash" id="flashWhite"></div>
-  <div class="flash red" id="flashRed"></div>
+  <div class="flashWhite" id="flashWhite"></div>
+  <div class="flashRed" id="flashRed"></div>
 
   <div class="shell">
     <div class="frame">
       <div class="topbar">
         <div class="panel">
-          <div><span class="rec">REC</span> / black archive recovery</div>
-          <div>feed source: civilian override layer</div>
-          <div class="warn">warning: restricted priority event</div>
+          <div><span class="rec">REC</span> / emergency override archive</div>
+          <div>source node: sector blackout recovery</div>
+          <div class="warn">warning: unauthorized civilian playback</div>
         </div>
         <div class="panel" style="text-align:right;">
           <div class="batteryWrap">power <span class="battery"><span class="batteryFill"></span></span></div>
@@ -693,34 +756,37 @@
       </div>
 
       <section class="section active" id="screen1">
-        <div class="overline">Recovered Last Transmission</div>
-        <div class="title glitch" data-text="THIS TAPE WAS NOT SUPPOSED TO SURVIVE.">
-          THIS TAPE WAS NOT SUPPOSED TO SURVIVE.
+        <div class="overline">Recovered Final Broadcast</div>
+        <div class="title glitch" data-text="THIS FILE SHOULD NOT EXIST.">
+          THIS FILE SHOULD NOT EXIST.
         </div>
         <div class="divider"></div>
         <div class="subtitle">
-          The final days did not end with silence. They ended with cut signals, dead cities, emergency overrides,
-          and names disappearing from the record. This file remained.
+          In the final hours, systems failed, towers went dark, and names vanished from the record.
+          Most transmissions died in silence. This one did not.
         </div>
         <div class="buttons">
-          <button class="btn btnMain" id="beginBtn">Resume Black Feed</button>
+          <button class="btn btnMain" id="beginBtn">Resume Priority Feed</button>
         </div>
       </section>
 
       <section class="section" id="screen2">
-        <div class="overline">Priority Emergency Playback</div>
-        <div class="title"><span class="amber">Do Not</span> Look Away.</div>
+        <div class="overline">Emergency Override / Level Black</div>
+        <div class="title"><span class="amber">Remain</span> Where You Are.</div>
+
         <div class="alertCard">
           <div class="alertRow">
-            <span>Priority Recovery</span>
-            <span>Level Black</span>
+            <span>Playback Status</span>
+            <span>Restricted</span>
           </div>
           <div class="alertText">
-            Playback contains unstable footage, corrupted recovery fragments, identity references, and restricted designation data.
-            Viewer discretion is advised.
+            Recovered material contains unstable emergency footage, identity-linked designation data,
+            and priority file recovery markers. Continue only if you intend to open the last surviving record.
           </div>
         </div>
+
         <div class="typebox" id="typebox"></div>
+
         <div class="buttons">
           <button class="btn" id="skipBtn">Bypass Interference</button>
           <button class="btn btnMain" id="openBtn" style="display:none;">Open Restricted File</button>
@@ -730,22 +796,32 @@
       <section class="section" id="screen3">
         <div class="profileWrap">
           <div class="profileCard">
-            <div class="label">essential personnel designation</div>
-            <div class="name" id="personName">Sam Newman</div>
-            <div class="role">priority clearance / final line</div>
+            <div class="profileMeta">
+              <div>
+                <div class="label">essential personnel designation</div>
+                <div class="name" id="personName">Sam Newman</div>
+                <div class="role">priority clearance / final line</div>
+              </div>
+              <div class="stamp">Verified Surviving Record</div>
+            </div>
+
             <div class="desc" id="personStory">
-              When everything starts to break, there are people you think about. When it gets truly dark, there are only a few you trust to stand with you. You have always been one of mine.
+              When everything starts to break, there are people you think about. When it gets truly dark,
+              there are only a few you trust to stand with you. You have always been one of mine.
             </div>
+
             <div class="quote" id="personQuote">
-              In the panic, in the static, in the final pieces left — your name stayed.
+              In the static, in the panic, in the final pieces left — your name stayed.
             </div>
+
             <div class="ask">
               Will you stand beside me<br>
               as my groomsman?
             </div>
+
             <div class="buttons">
               <button class="btn btnMain" id="acceptBtn">Accept Transmission</button>
-              <button class="btn" id="replayBtn">Replay Black Feed</button>
+              <button class="btn" id="replayBtn">Replay Feed</button>
             </div>
           </div>
         </div>
@@ -753,18 +829,19 @@
 
       <section class="section" id="screen4">
         <div class="overline">Acknowledgment Received</div>
-        <div class="title"><span class="red">Good.</span> It Could Only Be You.</div>
+        <div class="title"><span class="red">Good.</span> It Had To Be You.</div>
         <div class="subtitle" id="finalMessage">
-          When that day comes and everything hits at once, I do not want you lost in the crowd. I want you beside me.
+          When that day comes and everything hits at once, I do not want you lost in the crowd.
+          I want you beside me.
         </div>
         <div class="buttons">
-          <button class="btn btnMain" id="restartBtn">Restart Black Feed</button>
+          <button class="btn btnMain" id="restartBtn">Restart Priority Feed</button>
         </div>
       </section>
 
       <div class="footer">
-        <div class="danger">warning / unauthorized duplication discouraged</div>
-        <div>hawthorne archive / black invite signal</div>
+        <div class="danger">warning / restricted duplication discouraged</div>
+        <div>hawthorne archive / recovered invite signal</div>
       </div>
     </div>
   </div>
@@ -773,7 +850,7 @@
     const INVITE = {
       name: "Sam Newman",
       story: "When everything starts to break, there are people you think about. When it gets truly dark, there are only a few you trust to stand with you. You have always been one of mine.",
-      quote: "In the panic, in the static, in the final pieces left — your name stayed.",
+      quote: "In the static, in the panic, in the final pieces left — your name stayed.",
       final: "When that day comes and everything hits at once, I do not want you lost in the crowd. I want you beside me.",
       tapeLines: [
         "Emergency archive recovery initiated.",
@@ -782,8 +859,8 @@
         "Emergency channels overridden without warning.",
         "Broadcast towers falling offline one by one.",
         "Public records fragmented or erased.",
-        "Most names lost in the signal break.",
-        "A small number of priority files remained intact.",
+        "Most names were lost in the signal collapse.",
+        "A limited number of priority files remained intact.",
         "One file continued responding to recovery attempts.",
         "One identity remained flagged essential.",
         "That identity was yours."
@@ -814,7 +891,6 @@
     let typingDone = false;
     let typingTimer = null;
     let glitchInterval = null;
-    let startedAudio = false;
 
     function showScreen(target){
       [screen1, screen2, screen3, screen4].forEach(s => s.classList.remove("active"));
@@ -846,33 +922,40 @@
       openBtn.style.display = "none";
       typebox.innerHTML = "";
 
-      const text = lines.join("\n");
+      const fullText = lines.join("\n");
       let i = 0;
 
-      function glitchChar(ch){
-        if(Math.random() > 0.97){
-          const set = ["#", "%", "/", "=", "?", ":", "|"];
+      function corruptChar(ch){
+        if(ch === "\n" || ch === " ") return ch;
+        if(Math.random() > 0.975){
+          const set = ["#", "%", "/", "=", "?", ":", "|", "0", "X"];
           return set[Math.floor(Math.random() * set.length)];
         }
         return ch;
       }
 
       function step(){
-        const visible = text.slice(0, i).split("").map(glitchChar).join("");
+        const visible = fullText.slice(0, i).split("").map(corruptChar).join("");
         typebox.innerHTML = visible + '<span class="cursor">|</span>';
         i++;
 
-        if(i <= text.length){
-          if(Math.random() > 0.90) staticBurst();
-          if(Math.random() > 0.965) redFlash();
-          const speed = text[i - 1] === "\n" ? 240 : (text[i - 1] === "." ? 170 : Math.random() * 26 + 22);
+        if(i <= fullText.length){
+          if(Math.random() > 0.91) staticBurst(0.16 + Math.random() * 0.10, 0.09 + Math.random() * 0.05);
+          if(Math.random() > 0.975) redFlash();
+          if(Math.random() > 0.965) alarmPulse();
+          const current = fullText[i - 1];
+          const speed =
+            current === "\n" ? 260 :
+            current === "." ? 180 :
+            Math.random() * 28 + 20;
           typingTimer = setTimeout(step, speed);
         } else {
           typingDone = true;
-          typebox.textContent = text;
+          typebox.textContent = fullText;
           openBtn.style.display = "inline-block";
         }
       }
+
       step();
     }
 
@@ -896,7 +979,7 @@
     openBtn.addEventListener("click", () => {
       loadInvite();
       whiteFlash();
-      staticBurst();
+      staticBurst(0.22, 0.15);
       lowBoom();
       showScreen(screen3);
     });
@@ -909,13 +992,13 @@
 
     replayBtn.addEventListener("click", () => {
       whiteFlash();
-      staticBurst();
+      staticBurst(0.18, 0.12);
       showScreen(screen1);
     });
 
     restartBtn.addEventListener("click", () => {
       whiteFlash();
-      staticBurst();
+      staticBurst(0.18, 0.12);
       showScreen(screen1);
     });
 
@@ -942,17 +1025,13 @@
 
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
-
     let w = canvas.width = innerWidth;
     let h = canvas.height = innerHeight;
 
     let stars = [];
     let embers = [];
     let city = [];
-    let pulse = 0;
     let shockwave = 0;
-    let jitterX = 0;
-    let jitterY = 0;
     let deadFrames = 0;
 
     function resize(){
@@ -963,31 +1042,31 @@
     addEventListener("resize", resize);
 
     function buildScene(){
-      stars = Array.from({length: 180}, () => ({
+      stars = Array.from({length: 200}, () => ({
         x: Math.random() * w,
-        y: Math.random() * h * .72,
+        y: Math.random() * h * .70,
         r: Math.random() * 1.2 + .2,
         a: Math.random() * .45 + .08
       }));
 
-      embers = Array.from({length: 56}, () => ({
+      embers = Array.from({length: 64}, () => ({
         x: Math.random() * w,
-        y: h + Math.random() * 120,
-        vx: (Math.random() - .5) * .28,
-        vy: -(Math.random() * 1.3 + .35),
-        r: Math.random() * 2.3 + .7,
+        y: h + Math.random() * 140,
+        vx: (Math.random() - .5) * .30,
+        vy: -(Math.random() * 1.35 + .35),
+        r: Math.random() * 2.4 + .7,
         a: Math.random() * .45 + .14
       }));
 
       city = [];
-      const count = Math.floor(w / 28);
+      const count = Math.floor(w / 26);
       for(let i=0;i<count;i++){
         city.push({
           x: i * (w / count),
           w: Math.random() * 18 + 12,
-          h: Math.random() * (h * .18) + 28,
+          h: Math.random() * (h * .19) + 28,
           antenna: Math.random() > .76,
-          fire: Math.random() > .82
+          fire: Math.random() > .80
         });
       }
     }
@@ -996,16 +1075,16 @@
     function drawSky(){
       const g = ctx.createLinearGradient(0, 0, 0, h);
       g.addColorStop(0, "#010101");
-      g.addColorStop(.42, "#090909");
-      g.addColorStop(.78, "#170505");
+      g.addColorStop(.40, "#080808");
+      g.addColorStop(.76, "#190505");
       g.addColorStop(1, "#050505");
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
 
-      const blast = ctx.createRadialGradient(w * .52, h * .75, 0, w * .52, h * .75, h * .5);
-      blast.addColorStop(0, "rgba(255,92,30,.15)");
+      const blast = ctx.createRadialGradient(w * .52, h * .76, 0, w * .52, h * .76, h * .52);
+      blast.addColorStop(0, "rgba(255,100,30,.15)");
       blast.addColorStop(.14, "rgba(255,50,25,.10)");
-      blast.addColorStop(.36, "rgba(135,0,0,.06)");
+      blast.addColorStop(.34, "rgba(135,0,0,.07)");
       blast.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = blast;
       ctx.fillRect(0,0,w,h);
@@ -1023,27 +1102,15 @@
       }
     }
 
-    function drawShockwave(){
-      shockwave += 0.006;
-      const r = (Math.sin(shockwave) + 1) * .5;
-      ctx.save();
-      ctx.strokeStyle = `rgba(255,180,120,${0.03 + r * 0.04})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(w * .5, h * .76, h * (.07 + r * .05), Math.PI, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
     function drawCloudBands(){
       const t = performance.now() * 0.00012;
       for(let i=0;i<6;i++){
-        const y = h * .13 + i * 44 + Math.sin(t * 5 + i) * 10;
+        const y = h * .12 + i * 42 + Math.sin(t * 5 + i) * 10;
         const x = Math.sin(t * 2 + i * 1.5) * 90;
         const grad = ctx.createLinearGradient(x, y, x + w, y + 42);
         grad.addColorStop(0,"rgba(255,255,255,0)");
         grad.addColorStop(.18,"rgba(255,255,255,.014)");
-        grad.addColorStop(.5,"rgba(255,255,255,.038)");
+        grad.addColorStop(.5,"rgba(255,255,255,.04)");
         grad.addColorStop(.82,"rgba(255,255,255,.012)");
         grad.addColorStop(1,"rgba(255,255,255,0)");
         ctx.fillStyle = grad;
@@ -1051,16 +1118,29 @@
       }
     }
 
+    function drawShockwave(){
+      shockwave += 0.006;
+      const r = (Math.sin(shockwave) + 1) * .5;
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,180,120,${0.03 + r * 0.045})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(w * .5, h * .77, h * (.07 + r * .055), Math.PI, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function drawCity(){
       const baseY = h * .76;
       ctx.save();
+
       for(const b of city){
-        ctx.fillStyle = "rgba(8,8,8,.97)";
+        ctx.fillStyle = "rgba(7,7,7,.98)";
         ctx.fillRect(b.x, baseY - b.h, b.w, b.h);
 
-        if(b.fire && Math.random() > .35){
-          ctx.fillStyle = `rgba(255,${40 + Math.random()*50},${20 + Math.random()*20},${0.22 + Math.random()*0.12})`;
-          ctx.fillRect(b.x + b.w * .35, baseY - b.h - (Math.random() * 18 + 8), 2, Math.random() * 18 + 10);
+        if(b.fire && Math.random() > .30){
+          ctx.fillStyle = `rgba(255,${40 + Math.random()*50},${15 + Math.random()*20},${0.22 + Math.random()*0.15})`;
+          ctx.fillRect(b.x + b.w * .35, baseY - b.h - (Math.random() * 18 + 8), 2, Math.random() * 20 + 12);
         }
 
         if(b.antenna){
@@ -1071,15 +1151,17 @@
           ctx.stroke();
         }
       }
+
       ctx.restore();
     }
 
     function drawGround(){
       ctx.save();
+
       ctx.fillStyle = "#060606";
       ctx.beginPath();
       ctx.moveTo(0, h * .78);
-      ctx.bezierCurveTo(w * .18, h * .68, w * .34, h * .83, w * .52, h * .74);
+      ctx.bezierCurveTo(w * .18, h * .68, w * .34, h * .84, w * .52, h * .74);
       ctx.bezierCurveTo(w * .69, h * .66, w * .84, h * .83, w, h * .75);
       ctx.lineTo(w, h);
       ctx.lineTo(0, h);
@@ -1089,12 +1171,13 @@
       ctx.fillStyle = "#020202";
       ctx.beginPath();
       ctx.moveTo(0, h * .84);
-      ctx.bezierCurveTo(w * .2, h * .72, w * .38, h * .90, w * .58, h * .79);
-      ctx.bezierCurveTo(w * .76, h * .69, w * .87, h * .86, w, h * .80);
+      ctx.bezierCurveTo(w * .20, h * .72, w * .38, h * .91, w * .58, h * .79);
+      ctx.bezierCurveTo(w * .76, h * .69, w * .87, h * .87, w, h * .80);
       ctx.lineTo(w, h);
       ctx.lineTo(0, h);
       ctx.closePath();
       ctx.fill();
+
       ctx.restore();
     }
 
@@ -1104,12 +1187,12 @@
         e.y += e.vy;
         e.a -= .0012;
 
-        if(e.y < h * .38 || e.a <= 0){
+        if(e.y < h * .36 || e.a <= 0){
           e.x = Math.random() * w;
-          e.y = h + Math.random() * 120;
-          e.vx = (Math.random() - .5) * .28;
-          e.vy = -(Math.random() * 1.3 + .35);
-          e.r = Math.random() * 2.3 + .7;
+          e.y = h + Math.random() * 140;
+          e.vx = (Math.random() - .5) * .30;
+          e.vy = -(Math.random() * 1.35 + .35);
+          e.r = Math.random() * 2.4 + .7;
           e.a = Math.random() * .45 + .14;
         }
 
@@ -1122,16 +1205,15 @@
 
     function drawDeadFrameOverlay(){
       if(deadFrames > 0){
-        ctx.fillStyle = "rgba(0,0,0,.16)";
+        ctx.fillStyle = "rgba(0,0,0,.18)";
         ctx.fillRect(0,0,w,h);
         deadFrames--;
       }
     }
 
     function drawFrame(){
-      pulse += 0.016;
-      jitterX = Math.random() > .965 ? (Math.random() - .5) * 6 : 0;
-      jitterY = Math.random() > .985 ? (Math.random() - .5) * 4 : 0;
+      const jitterX = Math.random() > .965 ? (Math.random() - .5) * 6 : 0;
+      const jitterY = Math.random() > .985 ? (Math.random() - .5) * 4 : 0;
       if(Math.random() > .996) deadFrames = 2;
 
       ctx.save();
@@ -1150,7 +1232,7 @@
     }
     drawFrame();
 
-    let audioCtx, master, started = false, hissGain, glitchNoiseTimer = null;
+    let audioCtx, master, started = false, hissGain;
 
     function startAudio(){
       if(started) return;
@@ -1163,33 +1245,33 @@
 
       const rumbleOsc = audioCtx.createOscillator();
       rumbleOsc.type = "sine";
-      rumbleOsc.frequency.value = 34;
+      rumbleOsc.frequency.value = 32;
 
       const rumbleGain = audioCtx.createGain();
-      rumbleGain.gain.value = 0.06;
+      rumbleGain.gain.value = 0.065;
 
       const humOsc = audioCtx.createOscillator();
       humOsc.type = "sawtooth";
-      humOsc.frequency.value = 58;
+      humOsc.frequency.value = 56;
 
       const humFilter = audioCtx.createBiquadFilter();
       humFilter.type = "lowpass";
-      humFilter.frequency.value = 115;
+      humFilter.frequency.value = 110;
 
       const humGain = audioCtx.createGain();
       humGain.gain.value = 0.010;
 
-      const toneOsc = audioCtx.createOscillator();
-      toneOsc.type = "triangle";
-      toneOsc.frequency.value = 211;
+      const warningOsc = audioCtx.createOscillator();
+      warningOsc.type = "triangle";
+      warningOsc.frequency.value = 198;
 
-      const toneGain = audioCtx.createGain();
-      toneGain.gain.value = 0.0018;
+      const warningFilter = audioCtx.createBiquadFilter();
+      warningFilter.type = "bandpass";
+      warningFilter.frequency.value = 320;
+      warningFilter.Q.value = 3;
 
-      const toneFilter = audioCtx.createBiquadFilter();
-      toneFilter.type = "bandpass";
-      toneFilter.frequency.value = 350;
-      toneFilter.Q.value = 3;
+      const warningGain = audioCtx.createGain();
+      warningGain.gain.value = 0.0018;
 
       const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
       const data = noiseBuffer.getChannelData(0);
@@ -1201,29 +1283,29 @@
 
       const hissFilter = audioCtx.createBiquadFilter();
       hissFilter.type = "bandpass";
-      hissFilter.frequency.value = 3000;
+      hissFilter.frequency.value = 2900;
       hissFilter.Q.value = .8;
 
       hissGain = audioCtx.createGain();
-      hissGain.gain.value = 0.010;
+      hissGain.gain.value = 0.011;
 
       rumbleOsc.connect(rumbleGain).connect(master);
       humOsc.connect(humFilter).connect(humGain).connect(master);
-      toneOsc.connect(toneFilter).connect(toneGain).connect(master);
+      warningOsc.connect(warningFilter).connect(warningGain).connect(master);
       noise.connect(hissFilter).connect(hissGain).connect(master);
 
       rumbleOsc.start();
       humOsc.start();
-      toneOsc.start();
+      warningOsc.start();
       noise.start();
 
       setInterval(() => {
         if(!audioCtx) return;
-        rumbleOsc.frequency.setTargetAtTime(32 + Math.random() * 5, audioCtx.currentTime, .8);
-        humOsc.frequency.setTargetAtTime(55 + Math.random() * 8, audioCtx.currentTime, .7);
-        toneOsc.frequency.setTargetAtTime(205 + Math.random() * 18, audioCtx.currentTime, .9);
-        hissGain.gain.setTargetAtTime(0.008 + Math.random() * 0.012, audioCtx.currentTime, .5);
-      }, 1400);
+        rumbleOsc.frequency.setTargetAtTime(30 + Math.random() * 5, audioCtx.currentTime, .8);
+        humOsc.frequency.setTargetAtTime(54 + Math.random() * 8, audioCtx.currentTime, .7);
+        warningOsc.frequency.setTargetAtTime(192 + Math.random() * 24, audioCtx.currentTime, .9);
+        hissGain.gain.setTargetAtTime(0.009 + Math.random() * 0.010, audioCtx.currentTime, .5);
+      }, 1300);
     }
 
     function staticBurst(length = 0.25, volume = 0.18){
@@ -1241,7 +1323,7 @@
 
       const filter = audioCtx.createBiquadFilter();
       filter.type = "bandpass";
-      filter.frequency.value = 1100 + Math.random() * 1500;
+      filter.frequency.value = 1000 + Math.random() * 1600;
       filter.Q.value = 1.1;
 
       const gain = audioCtx.createGain();
@@ -1260,29 +1342,29 @@
 
       const osc = audioCtx.createOscillator();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(68, now);
-      osc.frequency.exponentialRampToValueAtTime(28, now + 0.75);
+      osc.frequency.setValueAtTime(66, now);
+      osc.frequency.exponentialRampToValueAtTime(26, now + 0.90);
 
       const filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 95;
+      filter.frequency.value = 90;
 
       const gain = audioCtx.createGain();
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(0.20, now + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.95);
+      gain.gain.linearRampToValueAtTime(0.21, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.05);
 
       osc.connect(filter).connect(gain).connect(master);
       osc.start(now);
-      osc.stop(now + 1.0);
+      osc.stop(now + 1.1);
     }
 
     function impactBoom(){
       if(!audioCtx) return;
       lowBoom();
-      setTimeout(() => staticBurst(0.20, 0.16), 40);
-      setTimeout(() => staticBurst(0.24, 0.17), 120);
-      setTimeout(() => staticBurst(0.18, 0.12), 210);
+      setTimeout(() => staticBurst(0.20, 0.16), 45);
+      setTimeout(() => staticBurst(0.23, 0.18), 120);
+      setTimeout(() => staticBurst(0.18, 0.12), 220);
     }
 
     function alarmPulse(){
@@ -1290,7 +1372,7 @@
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
       osc.type = "square";
-      osc.frequency.setValueAtTime(820, now);
+      osc.frequency.setValueAtTime(810, now);
 
       const filter = audioCtx.createBiquadFilter();
       filter.type = "bandpass";
@@ -1310,11 +1392,11 @@
     function subtleGlitches(){
       clearInterval(glitchInterval);
       glitchInterval = setInterval(() => {
-        if(Math.random() > .52) staticBurst(0.18 + Math.random() * 0.12, 0.11 + Math.random() * 0.05);
-        if(Math.random() > .80) whiteFlash();
-        if(Math.random() > .88) redFlash();
-        if(Math.random() > .90) alarmPulse();
-      }, 1900);
+        if(Math.random() > .50) staticBurst(0.16 + Math.random() * 0.12, 0.10 + Math.random() * 0.06);
+        if(Math.random() > .81) whiteFlash();
+        if(Math.random() > .89) redFlash();
+        if(Math.random() > .91) alarmPulse();
+      }, 1750);
     }
   </script>
 </body>
