@@ -1,351 +1,1305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Selection Protocol</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Selection Protocol // Level 5</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#000;
+      --panel:rgba(5,5,5,.82);
+      --panel2:rgba(12,12,12,.92);
+      --line:rgba(255,255,255,.10);
+      --text:#f2ede7;
+      --muted:#a79b90;
+      --red:#a20f0f;
+      --red2:#ff4a4a;
+      --amber:#d2a45a;
+      --shadow:0 0 40px rgba(255,0,0,.10), 0 0 100px rgba(255,255,255,.03);
+    }
 
-body{
-background:#000;
-color:#eee;
-font-family:"Courier New", monospace;
-overflow:hidden;
-}
+    html,body{
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      background:#000;
+      color:var(--text);
+      font-family:"Courier New", monospace;
+    }
 
-/* BACKGROUND */
-canvas{
-position:fixed;
-top:0;left:0;
-width:100%;height:100%;
-z-index:0;
-}
+    body{
+      background:
+        radial-gradient(circle at 50% 38%, rgba(255,255,255,.01), transparent 25%),
+        radial-gradient(circle at 50% 90%, rgba(140,0,0,.16), transparent 30%),
+        linear-gradient(180deg,#000 0%, #050505 40%, #000 100%);
+    }
 
-/* VHS EFFECT */
-.overlay{
-position:fixed;
-top:0;left:0;width:100%;height:100%;
-pointer-events:none;
-}
+    canvas{
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      z-index:0;
+    }
 
-.scanlines{
-background:repeating-linear-gradient(
-to bottom,
-rgba(255,255,255,.05) 0px,
-rgba(255,255,255,.05) 1px,
-transparent 2px,
-transparent 4px
-);
-opacity:.2;
-animation:scan 8s linear infinite;
-}
+    .layer{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+    }
 
-.noise{
-background-image:radial-gradient(circle,rgba(255,255,255,.7) .7px,transparent 1px);
-background-size:4px 4px;
-opacity:.05;
-animation:noise .15s infinite;
-}
+    .scanlines{
+      z-index:3;
+      opacity:.18;
+      background:repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,.05) 0px,
+        rgba(255,255,255,.05) 1px,
+        transparent 2px,
+        transparent 4px
+      );
+      mix-blend-mode:screen;
+      animation:scanMove 8s linear infinite;
+    }
 
-/* MAIN */
-.frame{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-width:90%;
-max-width:900px;
-padding:40px;
-border:1px solid rgba(255,255,255,.1);
-background:rgba(0,0,0,.8);
-text-align:center;
-box-shadow:0 0 50px rgba(255,0,0,.2);
-}
+    .noise{
+      z-index:4;
+      opacity:.05;
+      background-image:radial-gradient(circle, rgba(255,255,255,.75) .7px, transparent 1px);
+      background-size:4px 4px;
+      mix-blend-mode:screen;
+      animation:noiseShift .13s steps(3) infinite;
+    }
 
-/* TEXT */
-.title{
-font-size:clamp(32px,6vw,70px);
-letter-spacing:.1em;
-margin-bottom:20px;
-text-transform:uppercase;
-}
+    .tracking{
+      z-index:5;
+      opacity:.10;
+      background:
+        linear-gradient(to bottom,
+          transparent 0%,
+          rgba(255,255,255,.02) 46%,
+          rgba(255,255,255,.18) 50%,
+          rgba(255,255,255,.02) 54%,
+          transparent 100%);
+      transform:translateY(-120%);
+      animation:trackingBar 7.8s linear infinite;
+    }
 
-.subtitle{
-opacity:.7;
-margin-bottom:20px;
-}
+    .vignette{
+      z-index:6;
+      background:radial-gradient(circle at center, transparent 42%, rgba(0,0,0,.18) 65%, rgba(0,0,0,.58) 100%);
+    }
 
-.type{
-white-space:pre-wrap;
-font-size:18px;
-min-height:200px;
-}
+    .ghostBand{
+      z-index:7;
+      opacity:.06;
+      background:
+        linear-gradient(90deg,
+          transparent 0%,
+          rgba(255,255,255,.10) 18%,
+          transparent 35%,
+          rgba(255,255,255,.07) 62%,
+          transparent 100%);
+      transform:translateX(-120%);
+      animation:ghostSweep 10s linear infinite;
+      mix-blend-mode:screen;
+    }
 
-.cursor{
-animation:blink 1s infinite;
-}
+    .ritual{
+      z-index:8;
+      opacity:.045;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 0 110px, rgba(255,255,255,.06) 111px 112px, transparent 113px),
+        radial-gradient(circle at 50% 50%, transparent 0 170px, rgba(255,255,255,.04) 171px 172px, transparent 173px),
+        linear-gradient(transparent calc(50% - 1px), rgba(255,255,255,.04) calc(50% - 1px), rgba(255,255,255,.04) calc(50% + 1px), transparent calc(50% + 1px)),
+        linear-gradient(90deg, transparent calc(50% - 1px), rgba(255,255,255,.04) calc(50% - 1px), rgba(255,255,255,.04) calc(50% + 1px), transparent calc(50% + 1px));
+      mix-blend-mode:screen;
+      animation:ritualPulse 10s ease-in-out infinite;
+    }
 
-/* BUTTON */
-.btn{
-margin-top:30px;
-padding:12px 20px;
-border:1px solid rgba(255,255,255,.2);
-cursor:pointer;
-font-size:12px;
-letter-spacing:.2em;
-background:none;
-color:white;
-}
+    .flashWhite,
+    .flashRed,
+    .entityFlash{
+      z-index:100;
+      opacity:0;
+    }
 
-/* GLITCH */
-.glitch{
-position:relative;
-}
+    .flashWhite{background:#fff}
+    .flashRed{background:#7f0000}
 
-.glitch::before,
-.glitch::after{
-content:attr(data-text);
-position:absolute;
-top:0;left:0;
-width:100%;
-opacity:.6;
-}
+    .entityFlash{
+      background:
+        radial-gradient(circle at 50% 30%, rgba(0,0,0,.95) 0 5%, transparent 6%),
+        radial-gradient(ellipse at 50% 48%, rgba(0,0,0,.97) 0 11%, transparent 12%),
+        linear-gradient(to bottom, transparent 0 23%, rgba(0,0,0,.97) 24% 80%, transparent 81%),
+        radial-gradient(circle at 44% 31%, rgba(255,255,255,.18) 0 1px, transparent 2px),
+        radial-gradient(circle at 56% 31%, rgba(255,255,255,.18) 0 1px, transparent 2px),
+        radial-gradient(circle at center, transparent 18%, rgba(0,0,0,.94));
+      mix-blend-mode:multiply;
+    }
 
-.glitch::before{color:red;transform:translate(2px,-2px)}
-.glitch::after{color:cyan;transform:translate(-2px,2px)}
+    .flashWhite.on{animation:hardFlash .18s ease-out}
+    .flashRed.on{animation:redFlash .28s ease-out}
+    .entityFlash.on{animation:entityBlink .11s ease-out}
 
-/* FLASH */
-.flash{
-position:fixed;
-top:0;left:0;width:100%;height:100%;
-background:#fff;
-opacity:0;
-z-index:10;
-}
+    .frame{
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      width:min(92vw, 1000px);
+      min-height:min(88vh, 760px);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+        rgba(0,0,0,.72);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      z-index:20;
+      animation:breatheCam 8s ease-in-out infinite;
+    }
 
-/* SHADOW ENTITY */
-.entity{
-position:fixed;
-top:0;left:0;width:100%;height:100%;
-background:radial-gradient(circle at center,transparent 20%,rgba(0,0,0,.95));
-opacity:0;
-z-index:9;
-}
+    .frame::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
+      transform:translateX(-130%);
+      animation:sweep 10s linear infinite;
+      pointer-events:none;
+    }
 
-/* ANIMATIONS */
-@keyframes blink{50%{opacity:0}}
-@keyframes scan{0%{transform:translateY(-2%)}100%{transform:translateY(2%)}}
-@keyframes noise{0%{transform:translate(0,0)}100%{transform:translate(1%,1%)}}
-</style>
+    .frame::after{
+      content:"";
+      position:absolute;
+      inset:10px;
+      border:1px solid rgba(255,70,70,.18);
+      pointer-events:none;
+    }
+
+    .hud{
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px;
+      z-index:30;
+      font-size:10px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color:#ddd2ca;
+      pointer-events:none;
+    }
+
+    .panel{
+      min-width:250px;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,.24);
+      backdrop-filter:blur(2px);
+    }
+
+    .rec{
+      color:var(--red2);
+      font-weight:bold;
+      animation:blink 1.05s steps(1) infinite;
+    }
+
+    .warn{color:var(--amber)}
+
+    .screen{
+      position:absolute;
+      inset:0;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      padding:84px 34px 60px;
+      opacity:0;
+      visibility:hidden;
+      transform:scale(1.015);
+      transition:.55s ease;
+    }
+
+    .screen.active{
+      opacity:1;
+      visibility:visible;
+      transform:scale(1);
+    }
+
+    .overline{
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:.38em;
+      text-transform:uppercase;
+      margin-bottom:18px;
+    }
+
+    .title{
+      max-width:920px;
+      font-size:clamp(34px, 6vw, 84px);
+      line-height:.92;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      text-shadow:0 0 10px rgba(255,255,255,.05), 0 0 28px rgba(255,0,0,.10);
+    }
+
+    .title .red{color:#e24545}
+    .title .amber{color:#d8a65a}
+
+    .subtitle{
+      max-width:760px;
+      margin-top:18px;
+      font-size:clamp(14px, 2vw, 18px);
+      line-height:1.9;
+      color:#ded4cb;
+    }
+
+    .divider{
+      width:150px;
+      height:1px;
+      margin-top:24px;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.38), transparent);
+    }
+
+    .typebox{
+      max-width:840px;
+      min-height:200px;
+      margin-top:28px;
+      font-size:clamp(16px, 2vw, 22px);
+      line-height:1.95;
+      white-space:pre-wrap;
+      color:#f0e7df;
+    }
+
+    .cursor{
+      display:inline-block;
+      width:10px;
+      animation:blink 1s steps(1) infinite;
+    }
+
+    .glitch{
+      position:relative;
+      display:inline-block;
+    }
+
+    .glitch::before,
+    .glitch::after{
+      content:attr(data-text);
+      position:absolute;
+      inset:0;
+      opacity:.72;
+      pointer-events:none;
+    }
+
+    .glitch::before{
+      color:#ff3358;
+      transform:translate(2px,-1px);
+      clip-path:polygon(0 0,100% 0,100% 42%,0 42%);
+      animation:glitch1 1.2s infinite linear alternate-reverse;
+    }
+
+    .glitch::after{
+      color:#53bbff;
+      transform:translate(-2px,1px);
+      clip-path:polygon(0 60%,100% 60%,100% 100%,0 100%);
+      animation:glitch2 .9s infinite linear alternate-reverse;
+    }
+
+    .filePanel,
+    .profilePanel{
+      width:min(860px, 100%);
+      margin-top:24px;
+      background:rgba(0,0,0,.50);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 0 24px rgba(255,0,0,.06);
+      text-align:left;
+    }
+
+    .fileHeader,
+    .fileRow{
+      display:grid;
+      grid-template-columns: 1.6fr .7fr .7fr;
+      gap:12px;
+      padding:14px 16px;
+    }
+
+    .fileHeader{
+      font-size:11px;
+      letter-spacing:.20em;
+      text-transform:uppercase;
+      color:#cabdb1;
+      background:rgba(255,255,255,.02);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
+    .fileRow{
+      font-size:14px;
+      line-height:1.6;
+      color:#e5dbd2;
+      border-bottom:1px solid rgba(255,255,255,.05);
+    }
+
+    .fileRow:last-child{border-bottom:none}
+    .fileRow.active{
+      background:rgba(255,255,255,.03);
+      box-shadow:inset 0 0 0 1px rgba(255,70,70,.22);
+    }
+    .fileRow.corrupt{color:#ff9e9e}
+
+    .profilePanel{
+      padding:32px 30px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .profilePanel::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
+      transform:translateX(-130%);
+      animation:sweep 12s linear infinite;
+      pointer-events:none;
+    }
+
+    .profileMeta{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:18px;
+      align-items:start;
+      padding-bottom:16px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
+    .label{
+      font-size:11px;
+      color:#b9aa9b;
+      letter-spacing:.30em;
+      text-transform:uppercase;
+      margin-bottom:12px;
+    }
+
+    .name{
+      font-size:clamp(36px, 6vw, 86px);
+      line-height:.92;
+      text-transform:uppercase;
+      color:#fff8f3;
+      text-shadow:0 0 12px rgba(255,255,255,.05), 0 0 24px rgba(255,0,0,.08);
+    }
+
+    .role{
+      margin-top:18px;
+      color:#dc4f4f;
+      font-size:12px;
+      letter-spacing:.30em;
+      text-transform:uppercase;
+    }
+
+    .stamp{
+      border:1px solid rgba(255,80,80,.35);
+      color:#ff7b7b;
+      padding:10px 12px;
+      font-size:11px;
+      letter-spacing:.20em;
+      text-transform:uppercase;
+      transform:rotate(-3deg);
+      box-shadow:0 0 18px rgba(255,0,0,.08);
+      white-space:nowrap;
+    }
+
+    .desc{
+      margin-top:20px;
+      font-size:16px;
+      line-height:2;
+      color:#e8ddd5;
+    }
+
+    .quote{
+      margin-top:18px;
+      padding:14px 16px;
+      border-left:2px solid rgba(255,70,70,.45);
+      background:rgba(255,255,255,.03);
+      color:#f3eae3;
+      font-size:14px;
+      line-height:1.9;
+    }
+
+    .ask{
+      margin-top:30px;
+      text-align:center;
+      font-size:clamp(24px, 4vw, 48px);
+      line-height:1.15;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .buttons{
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:30px;
+    }
+
+    button{
+      appearance:none;
+      border:none;
+      background:none;
+      color:#fff;
+      font:inherit;
+      cursor:pointer;
+    }
+
+    .btn{
+      min-width:210px;
+      padding:14px 18px;
+      border:1px solid rgba(255,255,255,.16);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
+        rgba(15,15,15,.82);
+      font-size:11px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      transition:.25s ease;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 0 18px rgba(255,255,255,.03);
+    }
+
+    .btn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+      transform:translateX(-120%);
+      transition:.45s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-2px);
+      border-color:rgba(255,255,255,.34);
+      box-shadow:0 0 22px rgba(255,255,255,.05), 0 0 22px rgba(255,0,0,.10);
+    }
+
+    .btn:hover::before{
+      transform:translateX(120%);
+    }
+
+    .btnMain{
+      border-color:rgba(162,15,15,.42);
+      background:
+        linear-gradient(180deg, rgba(162,15,15,.26), rgba(38,0,0,.34)),
+        rgba(15,5,5,.88);
+      box-shadow:0 0 18px rgba(255,0,0,.12);
+    }
+
+    .footer{
+      position:absolute;
+      left:18px;
+      right:18px;
+      bottom:16px;
+      z-index:45;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      font-size:10px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:#91877f;
+      pointer-events:none;
+    }
+
+    .footer .danger{color:#d04a4a}
+
+    @media (max-width:840px){
+      .hud{
+        padding:10px;
+        font-size:9px;
+      }
+      .panel{
+        min-width:0;
+        flex:1;
+        padding:8px 9px;
+      }
+      .footer{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .profileMeta{
+        grid-template-columns:1fr;
+      }
+      .stamp{
+        justify-self:start;
+      }
+      .btn{
+        min-width:180px;
+      }
+      .fileHeader,.fileRow{
+        grid-template-columns:1fr;
+      }
+      .profilePanel{
+        padding:22px 18px;
+      }
+    }
+
+    @keyframes blink{50%{opacity:0}}
+    @keyframes scanMove{0%{transform:translateY(-2%)}100%{transform:translateY(2%)}}
+    @keyframes noiseShift{
+      0%{transform:translate(0,0)}
+      25%{transform:translate(1%,-1%)}
+      50%{transform:translate(-1%,1%)}
+      75%{transform:translate(1%,1%)}
+      100%{transform:translate(0,0)}
+    }
+    @keyframes trackingBar{
+      0%{transform:translateY(-120%)}
+      100%{transform:translateY(120%)}
+    }
+    @keyframes ghostSweep{
+      0%{transform:translateX(-120%)}
+      100%{transform:translateX(120%)}
+    }
+    @keyframes ritualPulse{
+      0%,100%{transform:scale(1.01);opacity:.04}
+      50%{transform:scale(1.03);opacity:.07}
+    }
+    @keyframes hardFlash{
+      0%{opacity:0}
+      20%{opacity:.95}
+      100%{opacity:0}
+    }
+    @keyframes redFlash{
+      0%{opacity:0}
+      15%{opacity:.42}
+      100%{opacity:0}
+    }
+    @keyframes entityBlink{
+      0%{opacity:0}
+      15%{opacity:.85}
+      100%{opacity:0}
+    }
+    @keyframes breatheCam{
+      0%,100%{transform:translate(-50%,-50%) scale(1)}
+      50%{transform:translate(-50%,-50%) scale(1.01)}
+    }
+    @keyframes sweep{
+      0%{transform:translateX(-130%)}
+      100%{transform:translateX(130%)}
+    }
+    @keyframes batteryPulse{
+      0%,100%{width:8%}
+      50%{width:13%}
+    }
+    @keyframes glitch1{
+      0%{transform:translate(2px,-1px)}
+      20%{transform:translate(-2px,1px)}
+      40%{transform:translate(3px,0)}
+      60%{transform:translate(-1px,-1px)}
+      80%{transform:translate(1px,2px)}
+      100%{transform:translate(2px,-2px)}
+    }
+    @keyframes glitch2{
+      0%{transform:translate(-2px,1px)}
+      25%{transform:translate(2px,-1px)}
+      50%{transform:translate(-3px,0)}
+      75%{transform:translate(1px,1px)}
+      100%{transform:translate(-1px,-2px)}
+    }
+  </style>
 </head>
-
 <body>
+  <canvas id="bg"></canvas>
 
-<canvas id="bg"></canvas>
+  <div class="layer scanlines"></div>
+  <div class="layer noise"></div>
+  <div class="layer tracking"></div>
+  <div class="layer vignette"></div>
+  <div class="layer ghostBand"></div>
+  <div class="layer ritual"></div>
 
-<div class="overlay scanlines"></div>
-<div class="overlay noise"></div>
+  <div class="layer flashWhite" id="flashWhite"></div>
+  <div class="layer flashRed" id="flashRed"></div>
+  <div class="layer entityFlash" id="entityFlash"></div>
 
-<div class="entity" id="entity"></div>
-<div class="flash" id="flash"></div>
+  <div class="frame" id="frame">
+    <div class="hud">
+      <div class="panel">
+        <div><span class="rec">REC</span> / recovered selection archive</div>
+        <div>source node: woods sector / repeating file</div>
+        <div class="warn">warning: civilian playback not advised</div>
+      </div>
+      <div class="panel" style="text-align:right;">
+        <div>integrity: unstable / looping</div>
+        <div id="timecode">00:00:00</div>
+        <div class="batteryWrap">power <span style="display:inline-block;width:76px;height:10px;border:1px solid rgba(255,255,255,.55);position:relative;vertical-align:middle;"><span class="batteryFill" style="display:block;"></span></span></div>
+      </div>
+    </div>
 
-<div class="frame">
+    <section class="screen active" id="screen1">
+      <div class="overline">Recovered Tape / Selection Protocol</div>
+      <div class="title glitch" data-text="THIS FILE KEPT COMING BACK.">
+        THIS FILE KEPT COMING BACK.
+      </div>
+      <div class="divider"></div>
+      <div class="subtitle">
+        Most recordings degraded. Most names vanished. One file continued to return,
+        no matter how many times it was erased.
+      </div>
 
-<div class="title glitch" data-text="SELECTION PROTOCOL ACTIVE">
-SELECTION PROTOCOL ACTIVE
-</div>
+      <div class="filePanel">
+        <div class="fileHeader">
+          <div>Recovered File</div>
+          <div>Status</div>
+          <div>Integrity</div>
+        </div>
+        <div class="fileRow">
+          <div>tape_01_tree_line.mov</div>
+          <div>Recovered</div>
+          <div>38%</div>
+        </div>
+        <div class="fileRow corrupt">
+          <div>tape_02_night_audio.wav</div>
+          <div>Corrupted</div>
+          <div>11%</div>
+        </div>
+        <div class="fileRow corrupt">
+          <div>tape_03_missing_subject.avi</div>
+          <div>Looping</div>
+          <div>08%</div>
+        </div>
+        <div class="fileRow active">
+          <div>tape_04_identity_return.dat</div>
+          <div>Active</div>
+          <div>Unknown</div>
+        </div>
+      </div>
 
-<div class="type" id="type"></div>
+      <div class="buttons">
+        <button class="btn btnMain" id="startBtn">Open Last Surviving File</button>
+      </div>
+    </section>
 
-<button class="btn" id="start">BEGIN</button>
+    <section class="screen" id="screen2">
+      <div class="overline">Playback / Identity Return</div>
+      <div class="title"><span class="amber">Do Not</span> Pause The Tape.</div>
+      <div class="typebox" id="typebox"></div>
+      <div class="buttons">
+        <button class="btn" id="skipBtn">Bypass Interference</button>
+        <button class="btn btnMain" id="openBtn" style="display:none;">Open Identity Record</button>
+      </div>
+    </section>
 
-</div>
+    <section class="screen" id="screen3">
+      <div class="profilePanel">
+        <div class="profileMeta">
+          <div>
+            <div class="label">surviving identity record</div>
+            <div class="name" id="personName">Sam Newman</div>
+            <div class="role" id="personRole">Groomsman</div>
+          </div>
+          <div class="stamp">Marked / Returned / Chosen</div>
+        </div>
 
-<script>
-/* =====================
-EDIT THIS FOR EACH PERSON
-===================== */
-const INVITE = {
-name: "Sam Newman",
-role: "Groomsman",
-message:
-"You were never one of the random ones.\n\nThrough everything — the chaos, the nights, the memories — you were always part of it.\n\nI don't want anyone else standing there.\n\nI want you."
-};
+        <div class="desc" id="personStory"></div>
+        <div class="quote" id="personQuote"></div>
 
-/* =====================
-TYPE EFFECT
-===================== */
-const typeBox = document.getElementById("type");
+        <div class="ask" id="askText">
+          Will you stand beside me<br>
+          as my groomsman?
+        </div>
 
-function typeText(lines, callback){
-let text = lines.join("\n");
-let i=0;
+        <div class="buttons">
+          <button class="btn btnMain" id="acceptBtn">Accept The Invitation</button>
+          <button class="btn" id="replayBtn">Replay The Tape</button>
+        </div>
+      </div>
+    </section>
 
-function step(){
-let display = text.substring(0,i);
+    <section class="screen" id="screen4">
+      <div class="overline">Acknowledgment Captured</div>
+      <div class="title"><span class="red">Good.</span> It Was Always You.</div>
+      <div class="subtitle" id="finalText"></div>
+      <div class="buttons">
+        <button class="btn btnMain" id="restartBtn">Restart The Tape</button>
+      </div>
+    </section>
 
-// corruption effect
-if(Math.random()>.97){
-display = display.replace(/./g,c=>Math.random()>.98?"#":c);
-}
+    <div class="footer">
+      <div class="danger">warning / repeated playback linked to recurring activity</div>
+      <div>hawthorne archive / identity return</div>
+    </div>
+  </div>
 
-typeBox.innerHTML = display + '<span class="cursor">|</span>';
-i++;
+  <script>
+    const INVITE = {
+      name: "Sam Newman",
+      role: "Groomsman",
+      message: "When everything becomes noise, there are still a few names that remain. Through every dark turn, every bad night, every memory worth keeping, you have always been one of mine.",
+      quote: "The tape erased almost everyone else. It kept bringing your name back.",
+      closingLine: "When that day comes and everything changes, I do not want you somewhere in the distance. I want you beside me when it matters.",
+      ask: "Will you stand beside me as my groomsman?",
+      tapeLines: [
+        "Tape recovery initialized.",
+        "Forest audio layer restored.",
+        "Visual fragments incomplete.",
+        "Three subjects entered the tree line.",
+        "Two voices returned on the recording.",
+        "One voice was never identified.",
+        "The camera kept running after the lights went out.",
+        "The file was deleted.",
+        "The file returned.",
+        "A name began appearing in the static.",
+        "...",
+        "It was your name."
+      ]
+    };
 
-if(i<=text.length){
-setTimeout(step, Math.random()*40+25);
-}else{
-setTimeout(callback,800);
-}
-}
-step();
-}
+    const screens = {
+      one: document.getElementById("screen1"),
+      two: document.getElementById("screen2"),
+      three: document.getElementById("screen3"),
+      four: document.getElementById("screen4")
+    };
 
-/* =====================
-GLITCH + ENTITY
-===================== */
-function scare(){
-const entity = document.getElementById("entity");
-const flash = document.getElementById("flash");
+    const typebox = document.getElementById("typebox");
+    const openBtn = document.getElementById("openBtn");
 
-entity.style.opacity = .9;
-flash.style.opacity = .8;
+    const personName = document.getElementById("personName");
+    const personRole = document.getElementById("personRole");
+    const personStory = document.getElementById("personStory");
+    const personQuote = document.getElementById("personQuote");
+    const finalText = document.getElementById("finalText");
+    const askText = document.getElementById("askText");
 
-setTimeout(()=>{
-entity.style.opacity=0;
-flash.style.opacity=0;
-},120);
-}
+    const flashWhite = document.getElementById("flashWhite");
+    const flashRed = document.getElementById("flashRed");
+    const entityFlash = document.getElementById("entityFlash");
 
-setInterval(()=>{
-if(Math.random()>.92){
-scare();
-}
-},2000);
+    let typingDone = false;
+    let typingTimer = null;
+    let glitchInterval = null;
+    let audioStarted = false;
 
-/* =====================
-AUDIO
-===================== */
-let ctx;
+    function showScreen(screen){
+      Object.values(screens).forEach(s => s.classList.remove("active"));
+      screen.classList.add("active");
+    }
 
-function startAudio(){
-ctx = new (window.AudioContext||window.webkitAudioContext)();
+    function whiteFlash(){
+      flashWhite.classList.remove("on");
+      void flashWhite.offsetWidth;
+      flashWhite.classList.add("on");
+    }
 
-// low rumble
-const osc = ctx.createOscillator();
-osc.frequency.value = 35;
+    function redFlash(){
+      flashRed.classList.remove("on");
+      void flashRed.offsetWidth;
+      flashRed.classList.add("on");
+    }
 
-const gain = ctx.createGain();
-gain.gain.value = .05;
+    function shadowFlash(){
+      entityFlash.classList.remove("on");
+      void entityFlash.offsetWidth;
+      entityFlash.classList.add("on");
+    }
 
-osc.connect(gain).connect(ctx.destination);
-osc.start();
+    function loadInvite(){
+      personName.textContent = INVITE.name;
+      personRole.textContent = INVITE.role;
+      personStory.textContent = INVITE.message;
+      personQuote.textContent = INVITE.quote;
+      finalText.textContent = INVITE.closingLine;
+      askText.innerHTML = `Will you stand beside me<br>as my ${INVITE.role.toLowerCase()}?`;
+    }
 
-// glitch bursts
-setInterval(()=>{
-const burst = ctx.createOscillator();
-burst.type="square";
-burst.frequency.value = 700 + Math.random()*800;
+    function corruptChar(ch){
+      if(ch === "\n" || ch === " ") return ch;
+      if(Math.random() > 0.978){
+        const set = ["#", "%", "/", "=", "?", ":", "|", "0", "X", "[", "]"];
+        return set[Math.floor(Math.random() * set.length)];
+      }
+      return ch;
+    }
 
-const g = ctx.createGain();
-g.gain.setValueAtTime(0.0001,ctx.currentTime);
-g.gain.linearRampToValueAtTime(.05,ctx.currentTime+.01);
-g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+.2);
+    function typeLines(lines){
+      clearTimeout(typingTimer);
+      typingDone = false;
+      openBtn.style.display = "none";
+      typebox.innerHTML = "";
 
-burst.connect(g).connect(ctx.destination);
-burst.start();
-burst.stop(ctx.currentTime+.2);
-},1600);
-}
+      const fullText = lines.join("\n");
+      let i = 0;
 
-/* =====================
-FLOW
-===================== */
-document.getElementById("start").onclick=()=>{
-startAudio();
+      function step(){
+        let raw = fullText.slice(0, i);
+        let visible = raw.split("").map(corruptChar).join("");
 
-typeText([
-"Initializing selection...",
-"Scanning...",
-"Subjects removed...",
-"...",
-"...",
-"Only one remains."
-], ()=>{
+        if(i > fullText.length * 0.78 && i < fullText.length * 0.96 && Math.random() > 0.8){
+          visible += "\n\n" + INVITE.name.slice(0, Math.max(1, Math.floor(Math.random() * INVITE.name.length)));
+        }
 
-scare();
+        typebox.innerHTML = visible + '<span class="cursor">|</span>';
+        i++;
 
-setTimeout(()=>{
-typeText([
-"IDENTITY FOUND:",
-"",
-INVITE.name.toUpperCase()
-], ()=>{
+        if(i <= fullText.length){
+          if(Math.random() > 0.91) staticBurst(0.14 + Math.random() * 0.10, 0.09 + Math.random() * 0.05);
+          if(Math.random() > 0.978) redFlash();
+          if(Math.random() > 0.988) shadowFlash();
+          if(Math.random() > 0.968) alarmPulse();
 
-setTimeout(()=>{
-typeText([
-"",
-"ROLE:",
-INVITE.role.toUpperCase()
-], ()=>{
+          const current = fullText[i - 1];
+          const speed =
+            current === "\n" ? 240 :
+            current === "." ? 180 :
+            Math.random() * 28 + 20;
 
-setTimeout(()=>{
-typeText([
-"",
-INVITE.message,
-"",
-"",
-"Will you stand beside me?"
-], ()=>{
+          typingTimer = setTimeout(step, speed);
+        } else {
+          typingDone = true;
+          typebox.textContent = fullText + "\n\n" + INVITE.name;
+          openBtn.style.display = "inline-block";
+        }
+      }
 
-document.getElementById("type").innerHTML +=
-"\n\n>>> ACCEPT <<<";
+      step();
+    }
 
-});
-},800);
-});
-},800);
-});
-},500);
-});
-};
+    function skipTyping(){
+      clearTimeout(typingTimer);
+      typebox.textContent = INVITE.tapeLines.join("\n") + "\n\n" + INVITE.name;
+      typingDone = true;
+      openBtn.style.display = "inline-block";
+    }
 
-/* =====================
-BACKGROUND
-===================== */
-const canvas = document.getElementById("bg");
-const c = canvas.getContext("2d");
+    document.getElementById("startBtn").addEventListener("click", () => {
+      startAudio();
+      whiteFlash();
+      subtleGlitches();
+      showScreen(screens.two);
+      typeLines(INVITE.tapeLines);
+    });
 
-let w,h;
-function resize(){
-w=canvas.width=innerWidth;
-h=canvas.height=innerHeight;
-}
-resize();
-window.onresize=resize;
+    document.getElementById("skipBtn").addEventListener("click", () => {
+      skipTyping();
+    });
 
-let stars = Array.from({length:120},()=>({
-x:Math.random()*w,
-y:Math.random()*h,
-r:Math.random()*1.5
-}));
+    openBtn.addEventListener("click", () => {
+      loadInvite();
+      whiteFlash();
+      staticBurst(0.22, 0.15);
+      lowBoom();
+      showScreen(screens.three);
+    });
 
-function draw(){
-c.fillStyle="#000";
-c.fillRect(0,0,w,h);
+    document.getElementById("acceptBtn").addEventListener("click", () => {
+      redFlash();
+      impactBoom();
+      showScreen(screens.four);
+    });
 
-for(let s of stars){
-c.fillStyle="rgba(255,255,255,.5)";
-c.fillRect(s.x,s.y,s.r,s.r);
-}
+    document.getElementById("replayBtn").addEventListener("click", () => {
+      whiteFlash();
+      staticBurst(0.18, 0.12);
+      showScreen(screens.one);
+    });
 
-requestAnimationFrame(draw);
-}
-draw();
+    document.getElementById("restartBtn").addEventListener("click", () => {
+      whiteFlash();
+      staticBurst(0.18, 0.12);
+      showScreen(screens.one);
+    });
 
-</script>
+    document.addEventListener("keydown", (e) => {
+      if(e.code === "Space" || e.code === "Enter"){
+        e.preventDefault();
 
+        if(screens.one.classList.contains("active")) {
+          document.getElementById("startBtn").click();
+        } else if(screens.two.classList.contains("active")) {
+          if(!typingDone) skipTyping();
+          else openBtn.click();
+        } else if(screens.three.classList.contains("active")) {
+          document.getElementById("acceptBtn").click();
+        } else if(screens.four.classList.contains("active")) {
+          document.getElementById("restartBtn").click();
+        }
+      }
+    });
+
+    setInterval(() => {
+      const d = new Date();
+      const h = String(d.getHours()).padStart(2, "0");
+      const m = String(d.getMinutes()).padStart(2, "0");
+      const s = String(d.getSeconds()).padStart(2, "0");
+      document.getElementById("timecode").textContent = `${h}:${m}:${s}`;
+    }, 1000);
+
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    let w = canvas.width = innerWidth;
+    let h = canvas.height = innerHeight;
+
+    let stars = [];
+    let embers = [];
+    let trees = [];
+    let deadFrames = 0;
+    let shockwave = 0;
+
+    function resize(){
+      w = canvas.width = innerWidth;
+      h = canvas.height = innerHeight;
+      buildScene();
+    }
+    addEventListener("resize", resize);
+
+    function buildScene(){
+      stars = Array.from({length: 170}, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h * .65,
+        r: Math.random() * 1.2 + .2,
+        a: Math.random() * .45 + .08
+      }));
+
+      embers = Array.from({length: 42}, () => ({
+        x: Math.random() * w,
+        y: h + Math.random() * 120,
+        vx: (Math.random() - .5) * .22,
+        vy: -(Math.random() * .95 + .20),
+        r: Math.random() * 2.2 + .6,
+        a: Math.random() * .35 + .10
+      }));
+
+      trees = Array.from({length: Math.floor(w/42)}, (_, i) => ({
+        x: i * 42 + Math.random() * 20,
+        h: Math.random() * (h * .28) + h * .18,
+        tw: Math.random() * 6 + 2,
+        tilt: (Math.random() - .5) * 0.08
+      }));
+    }
+    buildScene();
+
+    function drawSky(){
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, "#010101");
+      g.addColorStop(.45, "#070707");
+      g.addColorStop(.76, "#160505");
+      g.addColorStop(1, "#040404");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function drawStars(){
+      for(const s of stars){
+        s.a += (Math.random() - .5) * .012;
+        if(s.a < .05) s.a = .05;
+        if(s.a > .5) s.a = .5;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255,255,255,${s.a})`;
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawFog(){
+      const t = performance.now() * 0.00012;
+      for(let i=0;i<6;i++){
+        const y = h * .18 + i * 44 + Math.sin(t * 4 + i) * 10;
+        const x = Math.sin(t * 2 + i * 1.4) * 90;
+        const grad = ctx.createLinearGradient(x, y, x + w, y + 45);
+        grad.addColorStop(0,"rgba(255,255,255,0)");
+        grad.addColorStop(.18,"rgba(255,255,255,.012)");
+        grad.addColorStop(.5,"rgba(255,255,255,.035)");
+        grad.addColorStop(.82,"rgba(255,255,255,.010)");
+        grad.addColorStop(1,"rgba(255,255,255,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(-120, y, w + 240, 80);
+      }
+    }
+
+    function drawShockwave(){
+      shockwave += 0.005;
+      const r = (Math.sin(shockwave) + 1) * .5;
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,130,80,${0.02 + r * 0.03})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(w * .5, h * .8, h * (.05 + r * .04), Math.PI, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawGround(){
+      ctx.save();
+      ctx.fillStyle = "#040404";
+      ctx.beginPath();
+      ctx.moveTo(0, h * .80);
+      ctx.bezierCurveTo(w * .18, h * .70, w * .36, h * .86, w * .52, h * .77);
+      ctx.bezierCurveTo(w * .72, h * .66, w * .85, h * .85, w, h * .77);
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTrees(){
+      const baseY = h * .82;
+      ctx.save();
+      ctx.strokeStyle = "rgba(8,8,8,.98)";
+      ctx.lineCap = "round";
+
+      for(const t of trees){
+        ctx.lineWidth = t.tw;
+        ctx.beginPath();
+        ctx.moveTo(t.x, baseY);
+        ctx.lineTo(t.x + t.tilt * t.h, baseY - t.h);
+        ctx.stroke();
+
+        for(let j=0;j<5;j++){
+          const by = baseY - t.h * (0.2 + Math.random() * 0.65);
+          const bx = t.x + t.tilt * (baseY - by);
+          const len = Math.random() * 22 + 10;
+
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx - len, by - Math.random() * 14);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx + len, by - Math.random() * 14);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawEmbers(){
+      for(const e of embers){
+        e.x += e.vx;
+        e.y += e.vy;
+        e.a -= .0011;
+
+        if(e.y < h * .46 || e.a <= 0){
+          e.x = Math.random() * w;
+          e.y = h + Math.random() * 120;
+          e.vx = (Math.random() - .5) * .22;
+          e.vy = -(Math.random() * .95 + .20);
+          e.r = Math.random() * 2.2 + .6;
+          e.a = Math.random() * .35 + .10;
+        }
+
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255,70,30,${e.a})`;
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawDeadFrameOverlay(){
+      if(deadFrames > 0){
+        ctx.fillStyle = "rgba(0,0,0,.20)";
+        ctx.fillRect(0,0,w,h);
+        deadFrames--;
+      }
+    }
+
+    function drawFrame(){
+      const jitterX = Math.random() > .97 ? (Math.random() - .5) * 5 : 0;
+      const jitterY = Math.random() > .985 ? (Math.random() - .5) * 3 : 0;
+      if(Math.random() > .9965) deadFrames = 2;
+
+      ctx.save();
+      ctx.translate(jitterX, jitterY);
+      drawSky();
+      drawStars();
+      drawFog();
+      drawShockwave();
+      drawGround();
+      drawTrees();
+      drawEmbers();
+      drawDeadFrameOverlay();
+      ctx.restore();
+
+      requestAnimationFrame(drawFrame);
+    }
+    drawFrame();
+
+    let audioCtx, master, hissGain;
+
+    function startAudio(){
+      if(audioStarted) return;
+      audioStarted = true;
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      master = audioCtx.createGain();
+      master.gain.value = 0.34;
+      master.connect(audioCtx.destination);
+
+      const rumbleOsc = audioCtx.createOscillator();
+      rumbleOsc.type = "sine";
+      rumbleOsc.frequency.value = 31;
+
+      const rumbleGain = audioCtx.createGain();
+      rumbleGain.gain.value = 0.065;
+
+      const humOsc = audioCtx.createOscillator();
+      humOsc.type = "sawtooth";
+      humOsc.frequency.value = 54;
+
+      const humFilter = audioCtx.createBiquadFilter();
+      humFilter.type = "lowpass";
+      humFilter.frequency.value = 105;
+
+      const humGain = audioCtx.createGain();
+      humGain.gain.value = 0.011;
+
+      const whisperTone = audioCtx.createOscillator();
+      whisperTone.type = "triangle";
+      whisperTone.frequency.value = 184;
+
+      const whisperFilter = audioCtx.createBiquadFilter();
+      whisperFilter.type = "bandpass";
+      whisperFilter.frequency.value = 280;
+      whisperFilter.Q.value = 3.5;
+
+      const whisperGain = audioCtx.createGain();
+      whisperGain.gain.value = 0.0017;
+
+      const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for(let i=0;i<data.length;i++) data[i] = Math.random() * 2 - 1;
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      noise.loop = true;
+
+      const hissFilter = audioCtx.createBiquadFilter();
+      hissFilter.type = "bandpass";
+      hissFilter.frequency.value = 2700;
+      hissFilter.Q.value = 0.9;
+
+      hissGain = audioCtx.createGain();
+      hissGain.gain.value = 0.011;
+
+      rumbleOsc.connect(rumbleGain).connect(master);
+      humOsc.connect(humFilter).connect(humGain).connect(master);
+      whisperTone.connect(whisperFilter).connect(whisperGain).connect(master);
+      noise.connect(hissFilter).connect(hissGain).connect(master);
+
+      rumbleOsc.start();
+      humOsc.start();
+      whisperTone.start();
+      noise.start();
+
+      setInterval(() => {
+        rumbleOsc.frequency.setTargetAtTime(29 + Math.random() * 4, audioCtx.currentTime, .8);
+        humOsc.frequency.setTargetAtTime(52 + Math.random() * 7, audioCtx.currentTime, .7);
+        whisperTone.frequency.setTargetAtTime(176 + Math.random() * 22, audioCtx.currentTime, .9);
+        hissGain.gain.setTargetAtTime(0.009 + Math.random() * 0.010, audioCtx.currentTime, .5);
+      }, 1250);
+    }
+
+    function staticBurst(length = 0.25, volume = 0.18){
+      if(!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * length, audioCtx.sampleRate);
+      const arr = buffer.getChannelData(0);
+
+      for(let i=0;i<arr.length;i++){
+        arr[i] = (Math.random() * 2 - 1) * (1 - i / arr.length);
+      }
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1000 + Math.random() * 1500;
+      filter.Q.value = 1.1;
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + length);
+
+      src.connect(filter).connect(gain).connect(master);
+      src.start(now);
+      src.stop(now + length + 0.01);
+    }
+
+    function lowBoom(){
+      if(!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      const osc = audioCtx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(62, now);
+      osc.frequency.exponentialRampToValueAtTime(24, now + 1.0);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 85;
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.22, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.1);
+
+      osc.connect(filter).connect(gain).connect(master);
+      osc.start(now);
+      osc.stop(now + 1.15);
+    }
+
+    function impactBoom(){
+      if(!audioCtx) return;
+      lowBoom();
+      setTimeout(() => staticBurst(0.20, 0.16), 45);
+      setTimeout(() => staticBurst(0.23, 0.18), 120);
+      setTimeout(() => staticBurst(0.18, 0.12), 220);
+      setTimeout(() => shadowFlash(), 70);
+    }
+
+    function alarmPulse(){
+      if(!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(780, now);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 880;
+      filter.Q.value = 6;
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.04, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      osc.connect(filter).connect(gain).connect(master);
+      osc.start(now);
+      osc.stop(now + 0.20);
+    }
+
+    function subtleGlitches(){
+      clearInterval(glitchInterval);
+      glitchInterval = setInterval(() => {
+        if(Math.random() > .52) staticBurst(0.16 + Math.random() * 0.12, 0.10 + Math.random() * 0.06);
+        if(Math.random() > .82) whiteFlash();
+        if(Math.random() > .90) redFlash();
+        if(Math.random() > .93) shadowFlash();
+        if(Math.random() > .91) alarmPulse();
+      }, 1700);
+    }
+  </script>
 </body>
 </html>
