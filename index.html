@@ -1,1425 +1,460 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recovered Tape // Archive IV</title>
-  <style>
-    :root{
-      --bg:#000;
-      --text:#f1ece5;
-      --muted:#a89c91;
-      --line:rgba(255,255,255,.08);
-      --red:#a20f0f;
-      --red2:#ff4a4a;
-      --amber:#d5a457;
-      --panel:rgba(5,5,5,.84);
-      --panel2:rgba(10,10,10,.92);
-      --shadow:0 0 40px rgba(255,0,0,.08), 0 0 120px rgba(255,255,255,.03);
-    }
-
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{
-      width:100%;
-      height:100%;
-      overflow:hidden;
-      background:#000;
-      color:var(--text);
-      font-family:"Courier New", Courier, monospace;
-    }
-
-    body{
-      background:
-        radial-gradient(circle at 50% 40%, rgba(255,255,255,.01), transparent 25%),
-        radial-gradient(circle at 50% 88%, rgba(150,0,0,.15), transparent 30%),
-        linear-gradient(180deg,#000 0%, #040404 36%, #000 100%);
-    }
-
-    canvas{
-      position:fixed;
-      inset:0;
-      width:100%;
-      height:100%;
-      display:block;
-      z-index:0;
-    }
-
-    .layer{
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-    }
-
-    .crt{
-      z-index:3;
-      background:
-        radial-gradient(circle at center, transparent 46%, rgba(0,0,0,.16) 72%, rgba(0,0,0,.55) 100%);
-    }
-
-    .scanlines{
-      z-index:4;
-      opacity:.18;
-      background:repeating-linear-gradient(
-        to bottom,
-        rgba(255,255,255,.05) 0px,
-        rgba(255,255,255,.05) 1px,
-        transparent 2px,
-        transparent 4px
-      );
-      mix-blend-mode:screen;
-      animation:scanMove 7.5s linear infinite;
-    }
-
-    .noise{
-      z-index:5;
-      opacity:.05;
-      background-image:radial-gradient(circle, rgba(255,255,255,.75) .7px, transparent 1px);
-      background-size:4px 4px;
-      mix-blend-mode:screen;
-      animation:noiseShift .13s steps(3) infinite;
-    }
-
-    .tracking{
-      z-index:6;
-      opacity:.11;
-      background:
-        linear-gradient(to bottom,
-          transparent 0%,
-          rgba(255,255,255,.02) 46%,
-          rgba(255,255,255,.18) 50%,
-          rgba(255,255,255,.02) 54%,
-          transparent 100%);
-      transform:translateY(-120%);
-      animation:trackingBar 8s linear infinite;
-    }
-
-    .ghostBand{
-      z-index:7;
-      opacity:.06;
-      background:
-        linear-gradient(90deg,
-          transparent 0%,
-          rgba(255,255,255,.10) 18%,
-          transparent 36%,
-          rgba(255,255,255,.06) 62%,
-          transparent 100%);
-      transform:translateX(-120%);
-      animation:ghostSweep 9.8s linear infinite;
-      mix-blend-mode:screen;
-    }
-
-    .rollingStatic{
-      z-index:8;
-      opacity:.05;
-      background:linear-gradient(180deg, transparent, rgba(255,255,255,.10), transparent);
-      transform:translateY(-120%);
-      animation:trackingBar 4s linear infinite;
-      mix-blend-mode:screen;
-    }
-
-    .flicker{
-      z-index:9;
-      background:rgba(255,255,255,.018);
-      opacity:0;
-      animation:flicker 3.1s infinite;
-    }
-
-    .ritual{
-      z-index:10;
-      opacity:.05;
-      background:
-        radial-gradient(circle at 50% 50%, transparent 0 110px, rgba(255,255,255,.06) 111px 112px, transparent 113px),
-        radial-gradient(circle at 50% 50%, transparent 0 170px, rgba(255,255,255,.04) 171px 172px, transparent 173px),
-        linear-gradient(transparent calc(50% - 1px), rgba(255,255,255,.04) calc(50% - 1px), rgba(255,255,255,.04) calc(50% + 1px), transparent calc(50% + 1px)),
-        linear-gradient(90deg, transparent calc(50% - 1px), rgba(255,255,255,.04) calc(50% - 1px), rgba(255,255,255,.04) calc(50% + 1px), transparent calc(50% + 1px));
-      mix-blend-mode:screen;
-      animation:ritualPulse 10s ease-in-out infinite;
-    }
-
-    .dust{
-      z-index:11;
-      opacity:.35;
-      background:
-        radial-gradient(circle at 16% 26%, rgba(255,255,255,.04) 0 1px, transparent 2px),
-        radial-gradient(circle at 68% 34%, rgba(255,255,255,.03) 0 1px, transparent 2px),
-        radial-gradient(circle at 85% 74%, rgba(255,255,255,.025) 0 1px, transparent 2px),
-        radial-gradient(circle at 42% 86%, rgba(255,255,255,.03) 0 1px, transparent 2px),
-        radial-gradient(circle at 74% 16%, rgba(255,255,255,.025) 0 1px, transparent 2px);
-      animation:dustFloat 18s linear infinite;
-    }
-
-    .chromatic{
-      z-index:12;
-      box-shadow:
-        inset 2px 0 0 rgba(255,0,0,.025),
-        inset -2px 0 0 rgba(0,140,255,.02);
-    }
-
-    .flashWhite,
-    .flashRed,
-    .figureFlash{
-      z-index:100;
-      opacity:0;
-    }
-
-    .flashWhite{background:#fff}
-    .flashRed{background:#7e0000}
-
-    .figureFlash{
-      background:
-        radial-gradient(circle at 50% 35%, rgba(0,0,0,.95) 0 8%, transparent 9%),
-        radial-gradient(ellipse at 50% 52%, rgba(0,0,0,.96) 0 12%, transparent 13%),
-        linear-gradient(to bottom, transparent 0 25%, rgba(0,0,0,.96) 26% 78%, transparent 79%),
-        radial-gradient(circle at 42% 34%, rgba(255,255,255,.18) 0 1px, transparent 2px),
-        radial-gradient(circle at 58% 34%, rgba(255,255,255,.18) 0 1px, transparent 2px),
-        radial-gradient(circle at center, transparent 20%, rgba(0,0,0,.92));
-      mix-blend-mode:multiply;
-    }
-
-    .flashWhite.on{animation:hardFlash .18s ease-out}
-    .flashRed.on{animation:redFlash .30s ease-out}
-    .figureFlash.on{animation:figureBlink .12s ease-out}
-
-    .shell{
-      position:relative;
-      z-index:20;
-      width:100%;
-      height:100%;
-      padding:18px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .frame{
-      position:relative;
-      width:min(1140px,100%);
-      min-height:min(93vh,860px);
-      border:1px solid rgba(255,255,255,.08);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.008)),
-        rgba(0,0,0,.58);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      backdrop-filter:blur(5px);
-      transform-origin:center center;
-    }
-
-    .frame.breathe{
-      animation:breatheCam 8s ease-in-out infinite;
-    }
-
-    .frame::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
-      transform:translateX(-130%);
-      animation:sweep 9s linear infinite;
-      pointer-events:none;
-    }
-
-    .frame::after{
-      content:"";
-      position:absolute;
-      inset:10px;
-      border:1px solid rgba(162,15,15,.18);
-      pointer-events:none;
-    }
-
-    .topbar{
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      z-index:40;
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:14px;
-      font-size:10px;
-      letter-spacing:.22em;
-      text-transform:uppercase;
-      color:#ddd2ca;
-      pointer-events:none;
-    }
-
-    .panel{
-      min-width:260px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(0,0,0,.24);
-      padding:10px 12px;
-      box-shadow:0 0 14px rgba(0,0,0,.2);
-      backdrop-filter:blur(2px);
-    }
-
-    .rec{
-      color:var(--red2);
-      animation:blink 1.05s steps(1) infinite;
-      font-weight:bold;
-    }
-
-    .warn{ color:var(--amber); }
-
-    .batteryWrap{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    .battery{
-      width:76px;
-      height:10px;
-      border:1px solid rgba(255,255,255,.55);
-      position:relative;
-    }
-
-    .battery::after{
-      content:"";
-      position:absolute;
-      right:-4px;
-      top:2px;
-      width:2px;
-      height:4px;
-      background:rgba(255,255,255,.6);
-    }
-
-    .batteryFill{
-      height:100%;
-      width:8%;
-      background:linear-gradient(90deg,#420000,#ff2525);
-      box-shadow:0 0 8px rgba(255,0,0,.45);
-      animation:batteryPulse 2.1s ease-in-out infinite;
-    }
-
-    .section{
-      position:absolute;
-      inset:0;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:84px 36px 64px;
-      opacity:0;
-      visibility:hidden;
-      transform:scale(1.015);
-      transition:.65s ease;
-    }
-
-    .section.active{
-      opacity:1;
-      visibility:visible;
-      transform:scale(1);
-    }
-
-    .overline{
-      color:var(--muted);
-      font-size:11px;
-      letter-spacing:.38em;
-      text-transform:uppercase;
-      margin-bottom:18px;
-    }
-
-    .title{
-      max-width:1000px;
-      font-size:clamp(38px,7vw,96px);
-      line-height:.91;
-      letter-spacing:.07em;
-      text-transform:uppercase;
-      color:#f6f1eb;
-      text-shadow:
-        0 0 10px rgba(255,255,255,.05),
-        0 0 30px rgba(255,0,0,.11);
-    }
-
-    .title .red{color:#e13f3f}
-    .title .amber{color:#d6a358}
-
-    .subtitle{
-      max-width:850px;
-      margin-top:18px;
-      font-size:clamp(14px,2vw,18px);
-      line-height:1.92;
-      color:#ded4cb;
-    }
-
-    .divider{
-      width:150px;
-      height:1px;
-      margin-top:24px;
-      background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);
-    }
-
-    .fileList{
-      width:min(920px,100%);
-      margin-top:28px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(0,0,0,.48);
-      text-align:left;
-      box-shadow:0 0 24px rgba(255,0,0,.06);
-    }
-
-    .fileHeader{
-      display:grid;
-      grid-template-columns: 1.5fr .7fr .7fr;
-      gap:12px;
-      padding:14px 16px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      font-size:11px;
-      letter-spacing:.20em;
-      text-transform:uppercase;
-      color:#cabdb1;
-      background:rgba(255,255,255,.02);
-    }
-
-    .fileRow{
-      display:grid;
-      grid-template-columns: 1.5fr .7fr .7fr;
-      gap:12px;
-      padding:14px 16px;
-      border-bottom:1px solid rgba(255,255,255,.05);
-      font-size:14px;
-      line-height:1.6;
-      color:#e5dbd2;
-    }
-
-    .fileRow:last-child{border-bottom:none}
-    .fileRow.corrupt{color:#ff9e9e}
-    .fileRow.active{
-      background:rgba(255,255,255,.03);
-      box-shadow:inset 0 0 0 1px rgba(255,70,70,.22);
-    }
-
-    .typebox{
-      min-height:205px;
-      max-width:900px;
-      margin-top:26px;
-      font-size:clamp(16px,2vw,22px);
-      line-height:1.95;
-      color:#f0e7df;
-      text-shadow:0 0 8px rgba(255,255,255,.02);
-      white-space:pre-wrap;
-    }
-
-    .cursor{
-      display:inline-block;
-      width:10px;
-      animation:blink 1s steps(1) infinite;
-    }
-
-    .glitch{
-      position:relative;
-      display:inline-block;
-    }
-
-    .glitch::before,
-    .glitch::after{
-      content:attr(data-text);
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      opacity:.72;
-    }
-
-    .glitch::before{
-      color:#ff3358;
-      transform:translate(2px,-1px);
-      clip-path:polygon(0 0,100% 0,100% 42%,0 42%);
-      animation:glitch1 1.2s infinite linear alternate-reverse;
-    }
-
-    .glitch::after{
-      color:#53bbff;
-      transform:translate(-2px,1px);
-      clip-path:polygon(0 60%,100% 60%,100% 100%,0 100%);
-      animation:glitch2 .9s infinite linear alternate-reverse;
-    }
-
-    .profileWrap{
-      width:100%;
-      max-width:960px;
-      display:grid;
-      grid-template-columns:1fr;
-      gap:22px;
-      text-align:left;
-    }
-
-    .profileCard{
-      position:relative;
-      border:1px solid rgba(255,255,255,.10);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
-        rgba(0,0,0,.58);
-      padding:34px 32px;
-      overflow:hidden;
-      box-shadow:0 0 24px rgba(255,0,0,.08);
-    }
-
-    .profileCard::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
-      transform:translateX(-130%);
-      animation:sweep 12s linear infinite;
-      pointer-events:none;
-    }
-
-    .profileMeta{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:18px;
-      align-items:start;
-      padding-bottom:16px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-
-    .label{
-      font-size:11px;
-      color:#b9aa9b;
-      letter-spacing:.30em;
-      text-transform:uppercase;
-      margin-bottom:12px;
-    }
-
-    .name{
-      font-size:clamp(38px,6vw,88px);
-      line-height:.92;
-      text-transform:uppercase;
-      color:#fff8f3;
-      text-shadow:0 0 12px rgba(255,255,255,.05), 0 0 24px rgba(255,0,0,.08);
-    }
-
-    .role{
-      margin-top:18px;
-      color:#dc4f4f;
-      font-size:12px;
-      letter-spacing:.30em;
-      text-transform:uppercase;
-    }
-
-    .stamp{
-      border:1px solid rgba(255,80,80,.35);
-      color:#ff7b7b;
-      padding:10px 12px;
-      font-size:11px;
-      letter-spacing:.20em;
-      text-transform:uppercase;
-      transform:rotate(-3deg);
-      box-shadow:0 0 18px rgba(255,0,0,.08);
-      white-space:nowrap;
-    }
-
-    .desc{
-      margin-top:20px;
-      font-size:16px;
-      line-height:2;
-      color:#e8ddd5;
-    }
-
-    .quote{
-      margin-top:18px;
-      padding:14px 16px;
-      border-left:2px solid rgba(255,70,70,.45);
-      background:rgba(255,255,255,.03);
-      color:#f3eae3;
-      font-size:14px;
-      line-height:1.9;
-    }
-
-    .ask{
-      margin-top:30px;
-      text-align:center;
-      font-size:clamp(26px,4vw,52px);
-      line-height:1.14;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      color:#fff;
-      text-shadow:0 0 14px rgba(255,255,255,.03), 0 0 24px rgba(255,0,0,.10);
-    }
-
-    .buttons{
-      display:flex;
-      justify-content:center;
-      flex-wrap:wrap;
-      gap:12px;
-      margin-top:30px;
-    }
-
-    button{
-      appearance:none;
-      border:none;
-      background:none;
-      color:#fff;
-      font:inherit;
-      cursor:pointer;
-    }
-
-    .btn{
-      min-width:220px;
-      padding:14px 18px;
-      border:1px solid rgba(255,255,255,.16);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
-        rgba(15,15,15,.82);
-      font-size:11px;
-      letter-spacing:.22em;
-      text-transform:uppercase;
-      transition:.25s ease;
-      position:relative;
-      overflow:hidden;
-      box-shadow:0 0 18px rgba(255,255,255,.03);
-    }
-
-    .btn::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
-      transform:translateX(-120%);
-      transition:.45s ease;
-    }
-
-    .btn:hover{
-      transform:translateY(-2px);
-      border-color:rgba(255,255,255,.34);
-      box-shadow:0 0 22px rgba(255,255,255,.05), 0 0 22px rgba(255,0,0,.10);
-    }
-
-    .btn:hover::before{
-      transform:translateX(120%);
-    }
-
-    .btnMain{
-      border-color:rgba(255,59,59,.42);
-      background:
-        linear-gradient(180deg, rgba(162,15,15,.26), rgba(38,0,0,.34)),
-        rgba(15,5,5,.88);
-      box-shadow:0 0 18px rgba(255,0,0,.12);
-    }
-
-    .footer{
-      position:absolute;
-      left:18px;
-      right:18px;
-      bottom:16px;
-      z-index:45;
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      font-size:10px;
-      letter-spacing:.16em;
-      text-transform:uppercase;
-      color:#91877f;
-      pointer-events:none;
-    }
-
-    .footer .danger{color:#d04a4a}
-
-    @media (max-width:840px){
-      .shell{padding:10px}
-      .topbar{
-        padding:10px;
-        font-size:9px;
-      }
-      .panel{
-        min-width:0;
-        flex:1;
-        padding:8px 9px;
-      }
-      .footer{
-        flex-direction:column;
-        align-items:flex-start;
-      }
-      .profileCard,
-      .fileList{
-        padding:0;
-      }
-      .profileMeta{
-        grid-template-columns:1fr;
-      }
-      .stamp{
-        justify-self:start;
-      }
-      .btn{
-        min-width:180px;
-      }
-      .fileHeader,.fileRow{
-        grid-template-columns:1fr;
-      }
-    }
-
-    @keyframes blink{50%{opacity:.2}}
-    @keyframes scanMove{0%{transform:translateY(-2%)}100%{transform:translateY(2%)}}
-    @keyframes noiseShift{
-      0%{transform:translate(0,0)}
-      25%{transform:translate(1%,-1%)}
-      50%{transform:translate(-1%,1%)}
-      75%{transform:translate(1%,1%)}
-      100%{transform:translate(0,0)}
-    }
-    @keyframes trackingBar{
-      0%{transform:translateY(-120%)}
-      100%{transform:translateY(120%)}
-    }
-    @keyframes ghostSweep{
-      0%{transform:translateX(-120%)}
-      100%{transform:translateX(120%)}
-    }
-    @keyframes flicker{
-      0%,100%{opacity:0}
-      7%{opacity:.02}
-      8%{opacity:.01}
-      11%{opacity:.04}
-      28%{opacity:.015}
-      43%{opacity:.045}
-      44%{opacity:.01}
-      63%{opacity:.03}
-      64%{opacity:.012}
-      86%{opacity:.04}
-    }
-    @keyframes hardFlash{
-      0%{opacity:0}
-      20%{opacity:.95}
-      100%{opacity:0}
-    }
-    @keyframes redFlash{
-      0%{opacity:0}
-      15%{opacity:.42}
-      100%{opacity:0}
-    }
-    @keyframes figureBlink{
-      0%{opacity:0}
-      15%{opacity:.82}
-      100%{opacity:0}
-    }
-    @keyframes sweep{0%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
-    @keyframes batteryPulse{
-      0%,100%{width:8%}
-      50%{width:13%}
-    }
-    @keyframes dustFloat{
-      0%{transform:translateY(0)}
-      100%{transform:translateY(-24px)}
-    }
-    @keyframes ritualPulse{
-      0%,100%{transform:scale(1.01);opacity:.04}
-      50%{transform:scale(1.03);opacity:.07}
-    }
-    @keyframes breatheCam{
-      0%,100%{transform:scale(1) translateY(0)}
-      50%{transform:scale(1.012) translateY(-2px)}
-    }
-    @keyframes glitch1{
-      0%{transform:translate(2px,-1px)}
-      20%{transform:translate(-2px,1px)}
-      40%{transform:translate(3px,0)}
-      60%{transform:translate(-1px,-1px)}
-      80%{transform:translate(1px,2px)}
-      100%{transform:translate(2px,-2px)}
-    }
-    @keyframes glitch2{
-      0%{transform:translate(-2px,1px)}
-      25%{transform:translate(2px,-1px)}
-      50%{transform:translate(-3px,0)}
-      75%{transform:translate(1px,1px)}
-      100%{transform:translate(-1px,-2px)}
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GROOMSMAN // BLOOD OATH ARCHIVE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&display=swap');
+:root{
+  --blood:#8b0000;--blood2:#cc0000;--blood3:#ff1a1a;
+  --bone:#d4c5a9;--dark:#050505;--darker:#020202;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#020202;color:#d4c5a9;font-family:'Special Elite','Courier New',monospace;}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;}
+.layer{position:fixed;inset:0;pointer-events:none;}
+
+/* BLOOD DRIPS */
+.blood-drip-layer{z-index:2;overflow:hidden;}
+.blood-drip{position:absolute;top:0;width:4px;background:linear-gradient(to bottom,#cc0000,#8b0000);border-radius:0 0 50% 50%;animation:drip var(--dur) ease-in var(--delay) infinite;opacity:.85;box-shadow:0 0 8px rgba(180,0,0,.6);}
+
+.scanlines{z-index:4;opacity:.22;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.08) 0px,rgba(0,0,0,.08) 1px,transparent 2px,transparent 4px);}
+.noise{z-index:5;opacity:.06;background-image:radial-gradient(circle,rgba(180,0,0,.4) .7px,transparent 1px);background-size:3px 3px;animation:noiseShift .11s steps(4) infinite;}
+.vignette{z-index:6;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.7) 75%,rgba(0,0,0,.95) 100%);}
+.flicker{z-index:7;background:rgba(80,0,0,.04);opacity:0;animation:flicker 2.8s infinite;}
+.skull-bg{z-index:1;opacity:.04;font-size:40vw;line-height:1;display:flex;align-items:center;justify-content:center;color:#fff;animation:skullPulse 6s ease-in-out infinite;}
+
+.flashWhite,.flashRed,.flashBlood{z-index:100;opacity:0;}
+.flashWhite{background:#fff}
+.flashRed{background:#3a0000}
+.flashBlood{background:radial-gradient(ellipse at center,rgba(180,0,0,.9),rgba(40,0,0,.8))}
+.flashWhite.on{animation:hardFlash .15s ease-out}
+.flashRed.on{animation:redFlash .35s ease-out}
+.flashBlood.on{animation:bloodFlash .4s ease-out}
+
+.shell{position:relative;z-index:20;width:100%;height:100%;padding:16px;display:flex;align-items:center;justify-content:center;}
+.frame{position:relative;width:min(1160px,100%);min-height:min(94vh,880px);border:2px solid rgba(180,0,0,.35);background:linear-gradient(180deg,rgba(20,0,0,.95),rgba(5,0,0,.98));overflow:hidden;box-shadow:0 0 60px rgba(180,0,0,.2),0 0 200px rgba(180,0,0,.08),inset 0 0 80px rgba(0,0,0,.8);}
+.frame::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(180,0,0,.015) 3px,transparent 4px);pointer-events:none;}
+.frame::after{content:"";position:absolute;inset:6px;border:1px solid rgba(180,0,0,.15);pointer-events:none;}
+
+.topbar{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;justify-content:space-between;gap:10px;padding:12px;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(180,60,60,.8);pointer-events:none;}
+.toppanel{border:1px solid rgba(180,0,0,.2);background:rgba(20,0,0,.6);padding:8px 12px;backdrop-filter:blur(4px);}
+.rec{color:#ff1a1a;animation:blink .9s steps(1) infinite;font-weight:bold;}
+.warn{color:#ff6b00;text-shadow:0 0 8px rgba(255,100,0,.4);}
+
+.section{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:90px 40px 70px;opacity:0;visibility:hidden;transform:scale(1.02) translateY(4px);transition:.7s ease;}
+.section.active{opacity:1;visibility:visible;transform:scale(1) translateY(0);}
+
+.overline{font-size:10px;letter-spacing:.45em;text-transform:uppercase;color:rgba(180,60,60,.7);margin-bottom:16px;}
+.title{max-width:1000px;font-family:'Creepster','Special Elite',monospace;font-size:clamp(36px,6.5vw,90px);line-height:.9;letter-spacing:.05em;text-transform:uppercase;color:#e8c8c8;text-shadow:0 0 30px rgba(180,0,0,.6),0 0 60px rgba(180,0,0,.3),2px 2px 0 #000;}
+.title .bl{color:#ff1a1a;text-shadow:0 0 20px rgba(255,0,0,.8),0 0 40px rgba(255,0,0,.4);}
+.subtitle{max-width:840px;margin-top:20px;font-size:clamp(13px,1.8vw,17px);line-height:2;color:#c9a8a8;}
+.divider{width:200px;height:2px;margin-top:22px;background:linear-gradient(90deg,transparent,#cc0000,transparent);box-shadow:0 0 12px rgba(180,0,0,.5);}
+
+.fileList{width:min(940px,100%);margin-top:26px;border:1px solid rgba(180,0,0,.25);background:rgba(10,0,0,.7);text-align:left;box-shadow:0 0 30px rgba(180,0,0,.1),inset 0 0 30px rgba(0,0,0,.5);}
+.fileHeader{display:grid;grid-template-columns:1.5fr .7fr .7fr;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(180,0,0,.2);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(180,80,80,.7);background:rgba(180,0,0,.08);}
+.fileRow{display:grid;grid-template-columns:1.5fr .7fr .7fr;gap:12px;padding:13px 16px;border-bottom:1px solid rgba(180,0,0,.1);font-size:13px;line-height:1.5;color:#c9b0b0;}
+.fileRow:last-child{border-bottom:none}
+.fileRow.corrupt{color:#ff6060;text-shadow:0 0 6px rgba(255,0,0,.4);}
+.fileRow.gore{color:#ff3030;text-shadow:0 0 10px rgba(255,0,0,.6);animation:textPulse 2s ease-in-out infinite;}
+.fileRow.active{background:rgba(180,0,0,.1);box-shadow:inset 0 0 0 1px rgba(255,0,0,.3);animation:activeGlow 1.5s ease-in-out infinite;}
+
+.typebox{min-height:220px;max-width:920px;margin-top:24px;font-size:clamp(15px,1.9vw,21px);line-height:2;color:#ddbaba;white-space:pre-wrap;}
+.cursor{display:inline-block;width:10px;color:#ff1a1a;animation:blink 1s steps(1) infinite;}
+
+.glitch{position:relative;display:inline-block;}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;inset:0;pointer-events:none;opacity:.65;}
+.glitch::before{color:#ff0000;transform:translate(3px,-2px);clip-path:polygon(0 0,100% 0,100% 38%,0 38%);animation:glitch1 .8s infinite linear alternate-reverse;}
+.glitch::after{color:#8b0000;transform:translate(-3px,2px);clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%);animation:glitch2 .6s infinite linear alternate-reverse;}
+
+.profileWrap{width:100%;max-width:980px;display:grid;grid-template-columns:1fr;gap:20px;text-align:left;}
+.profileCard{position:relative;border:1px solid rgba(180,0,0,.3);background:linear-gradient(180deg,rgba(20,0,0,.9),rgba(8,0,0,.95));padding:32px 30px;overflow:hidden;box-shadow:0 0 40px rgba(180,0,0,.15);}
+.profileMeta{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start;padding-bottom:16px;border-bottom:1px solid rgba(180,0,0,.2);}
+.label{font-size:10px;color:rgba(180,80,80,.7);letter-spacing:.32em;text-transform:uppercase;margin-bottom:10px;}
+.name{font-family:'Creepster',monospace;font-size:clamp(36px,5.5vw,82px);line-height:.92;text-transform:uppercase;color:#f0d0d0;text-shadow:0 0 20px rgba(180,0,0,.5),3px 3px 0 rgba(100,0,0,.6);}
+.role{margin-top:16px;color:#ff1a1a;font-size:11px;letter-spacing:.28em;text-transform:uppercase;text-shadow:0 0 10px rgba(255,0,0,.4);}
+.stamp{border:2px solid rgba(180,0,0,.5);color:#ff1a1a;padding:10px 14px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;transform:rotate(-4deg);box-shadow:0 0 20px rgba(180,0,0,.2);text-shadow:0 0 8px rgba(255,0,0,.5);animation:stampPulse 3s ease-in-out infinite;white-space:nowrap;}
+.desc{margin-top:18px;font-size:15px;line-height:2;color:#c9aaaa;}
+.quote{margin-top:16px;padding:14px 18px;border-left:3px solid #cc0000;background:rgba(180,0,0,.08);color:#ddbaba;font-size:14px;line-height:1.9;}
+.ask{margin-top:28px;text-align:center;font-family:'Creepster',monospace;font-size:clamp(24px,3.8vw,50px);line-height:1.15;text-transform:uppercase;letter-spacing:.06em;color:#f0d0d0;text-shadow:0 0 20px rgba(180,0,0,.5);}
+
+.buttons{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;margin-top:28px;}
+button{appearance:none;border:none;background:none;color:#fff;font:inherit;cursor:pointer;}
+.btn{min-width:220px;padding:14px 20px;border:1px solid rgba(180,0,0,.35);background:linear-gradient(180deg,rgba(40,0,0,.8),rgba(10,0,0,.9));font-size:10px;letter-spacing:.24em;text-transform:uppercase;transition:.3s ease;position:relative;overflow:hidden;color:#ddaaaa;font-family:'Special Elite',monospace;}
+.btn:hover{transform:translateY(-2px);border-color:rgba(255,0,0,.6);box-shadow:0 0 30px rgba(180,0,0,.3);color:#ffcccc;text-shadow:0 0 10px rgba(255,0,0,.5);}
+.btnMain{border-color:rgba(220,0,0,.5);background:linear-gradient(180deg,rgba(80,0,0,.6),rgba(30,0,0,.85));color:#ffaaaa;}
+.btnMain:hover{background:linear-gradient(180deg,rgba(120,0,0,.7),rgba(50,0,0,.9));box-shadow:0 0 40px rgba(220,0,0,.4);}
+
+.footer{position:absolute;left:16px;right:16px;bottom:14px;z-index:45;display:flex;justify-content:space-between;gap:12px;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:rgba(140,60,60,.6);pointer-events:none;}
+.footer .danger{color:rgba(200,60,60,.8);}
+
+@keyframes drip{0%{height:0;opacity:.9}60%{height:var(--len);opacity:.85}85%{height:calc(var(--len) + 14px);opacity:.6}100%{height:calc(var(--len) + 30px);opacity:0}}
+@keyframes blink{50%{opacity:.1}}
+@keyframes noiseShift{0%{transform:translate(0,0)}25%{transform:translate(1%,-1%)}50%{transform:translate(-1%,1%)}75%{transform:translate(1%,1%)}100%{transform:translate(0,0)}}
+@keyframes flicker{0%,100%{opacity:0}5%{opacity:.03}14%{opacity:.05}30%{opacity:.02}45%{opacity:.06}66%{opacity:.04}88%{opacity:.05}}
+@keyframes hardFlash{0%{opacity:0}18%{opacity:.9}100%{opacity:0}}
+@keyframes redFlash{0%{opacity:0}12%{opacity:.5}100%{opacity:0}}
+@keyframes bloodFlash{0%{opacity:0}15%{opacity:.65}100%{opacity:0}}
+@keyframes skullPulse{0%,100%{opacity:.03;transform:scale(1)}50%{opacity:.07;transform:scale(1.02)}}
+@keyframes textPulse{0%,100%{opacity:.8}50%{opacity:1;text-shadow:0 0 15px rgba(255,0,0,.8);}}
+@keyframes activeGlow{0%,100%{box-shadow:inset 0 0 0 1px rgba(255,0,0,.3)}50%{box-shadow:inset 0 0 0 1px rgba(255,0,0,.7),0 0 20px rgba(180,0,0,.2);}}
+@keyframes stampPulse{0%,100%{box-shadow:0 0 20px rgba(180,0,0,.2);}50%{box-shadow:0 0 35px rgba(220,0,0,.4);}}
+@keyframes glitch1{0%{transform:translate(3px,-2px)}20%{transform:translate(-3px,2px)}40%{transform:translate(4px,0)}60%{transform:translate(-2px,-2px)}100%{transform:translate(3px,-3px)}}
+@keyframes glitch2{0%{transform:translate(-3px,2px)}25%{transform:translate(3px,-2px)}50%{transform:translate(-4px,0)}75%{transform:translate(2px,2px)}100%{transform:translate(-2px,-3px)}}
+@keyframes bloodSplat{0%{transform:scale(0);opacity:.9}50%{transform:scale(1.5);opacity:.7}100%{transform:scale(2.5);opacity:0}}
+@media(max-width:840px){.shell{padding:8px}.topbar{padding:8px;font-size:8px;}.toppanel{min-width:0;flex:1;padding:7px 9px;}.footer{flex-direction:column;}.profileMeta{grid-template-columns:1fr;}.stamp{justify-self:start;}.btn{min-width:160px;}.fileHeader,.fileRow{grid-template-columns:1fr;}}
+</style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
-
-  <div class="layer crt"></div>
-  <div class="layer scanlines"></div>
-  <div class="layer noise"></div>
-  <div class="layer tracking"></div>
-  <div class="layer rollingStatic"></div>
-  <div class="layer ghostBand"></div>
-  <div class="layer flicker"></div>
-  <div class="layer ritual"></div>
-  <div class="layer dust"></div>
-  <div class="layer chromatic"></div>
-  <div class="layer flashWhite" id="flashWhite"></div>
-  <div class="layer flashRed" id="flashRed"></div>
-  <div class="layer figureFlash" id="figureFlash"></div>
-
-  <div class="shell">
-    <div class="frame breathe" id="frame">
-      <div class="topbar">
-        <div class="panel">
-          <div><span class="rec">REC</span> / recovered ritual archive</div>
-          <div>source node: woods sector / unknown tape</div>
-          <div class="warn">warning: civilian playback not advised</div>
-        </div>
-        <div class="panel" style="text-align:right;">
-          <div class="batteryWrap">power <span class="battery"><span class="batteryFill"></span></span></div>
-          <div id="timecode">00:00:00</div>
-          <div>integrity: unstable / repeating</div>
-        </div>
-      </div>
-
-      <section class="section active" id="screen1">
-        <div class="overline">Recovered Tape / Archive IV</div>
-        <div class="title glitch" data-text="THE CAMERA KEPT RECORDING AFTER THEY LEFT.">
-          THE CAMERA KEPT RECORDING AFTER THEY LEFT.
-        </div>
-        <div class="divider"></div>
-        <div class="subtitle">
-          The footage was recovered in pieces. Most of it was damaged. Some of it was never meant to be seen.
-          One file kept returning, no matter how many times it was deleted.
-        </div>
-
-        <div class="fileList">
-          <div class="fileHeader">
-            <div>Recovered File</div>
-            <div>Status</div>
-            <div>Integrity</div>
-          </div>
-          <div class="fileRow">
-            <div>tape_01_woods_entry.mov</div>
-            <div>Recovered</div>
-            <div>41%</div>
-          </div>
-          <div class="fileRow corrupt">
-            <div>tape_02_night_audio_only.wav</div>
-            <div>Corrupted</div>
-            <div>12%</div>
-          </div>
-          <div class="fileRow corrupt">
-            <div>tape_03_subject_missing.avi</div>
-            <div>Looping</div>
-            <div>09%</div>
-          </div>
-          <div class="fileRow active">
-            <div>tape_04_priority_name_feed.dat</div>
-            <div>Active</div>
-            <div>Unknown</div>
-          </div>
-        </div>
-
-        <div class="buttons">
-          <button class="btn btnMain" id="beginBtn">Open Last Surviving File</button>
-        </div>
-      </section>
-
-      <section class="section" id="screen2">
-        <div class="overline">Playback / Priority Name Feed</div>
-        <div class="title"><span class="amber">Do Not</span> Pause The Tape.</div>
-        <div class="typebox" id="typebox"></div>
-        <div class="buttons">
-          <button class="btn" id="skipBtn">Bypass Interference</button>
-          <button class="btn btnMain" id="openBtn" style="display:none;">Open Identity Record</button>
-        </div>
-      </section>
-
-      <section class="section" id="screen3">
-        <div class="profileWrap">
-          <div class="profileCard">
-            <div class="profileMeta">
-              <div>
-                <div class="label">surviving identity record</div>
-                <div class="name" id="personName">Sam Newman</div>
-                <div class="role">selected witness / final line</div>
-              </div>
-              <div class="stamp">Marked / Returned / Chosen</div>
-            </div>
-
-            <div class="desc" id="personStory">
-              When everything becomes noise, there are still a few names that remain. Through every dark turn, every bad night, every memory worth keeping, you have always been one of mine.
-            </div>
-
-            <div class="quote" id="personQuote">
-              The tape erased almost everyone else. It kept bringing your name back.
-            </div>
-
-            <div class="ask">
-              Will you stand beside me<br>
-              as my groomsman?
-            </div>
-
-            <div class="buttons">
-              <button class="btn btnMain" id="acceptBtn">Accept The Mark</button>
-              <button class="btn" id="replayBtn">Replay The Tape</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" id="screen4">
-        <div class="overline">Acknowledgment Captured</div>
-        <div class="title"><span class="red">Good.</span> It Was Always You.</div>
-        <div class="subtitle" id="finalMessage">
-          When that day comes and everything changes, I do not want you somewhere in the distance.
-          I want you beside me when it matters.
-        </div>
-        <div class="buttons">
-          <button class="btn btnMain" id="restartBtn">Restart The Tape</button>
-        </div>
-      </section>
-
-      <div class="footer">
-        <div class="danger">warning / repeated playback linked to recurring activity</div>
-        <div>hawthorne archive / tape iv / identity return</div>
-      </div>
-    </div>
+<canvas id="bg"></canvas>
+<div class="layer skull-bg">&#x1F480;</div>
+<div class="layer blood-drip-layer" id="bloodDrips"></div>
+<div class="layer scanlines"></div>
+<div class="layer noise"></div>
+<div class="layer vignette"></div>
+<div class="layer flicker"></div>
+<div class="layer flashWhite" id="flashWhite"></div>
+<div class="layer flashRed" id="flashRed"></div>
+<div class="layer flashBlood" id="flashBlood"></div>
+<div class="shell"><div class="frame" id="frame">
+<div class="topbar">
+  <div class="toppanel">
+    <div><span class="rec">&#x2022; REC</span> / BLOOD OATH ARCHIVE &mdash; SECTOR VII</div>
+    <div>REMAINS RECOVERED: SITE UNKNOWN / STILL WARM</div>
+    <div class="warn">&#x26A0; WARNING: DO NOT OPEN ALONE IN THE DARK</div>
   </div>
+  <div class="toppanel" style="text-align:right;">
+    <div id="timecode" style="color:rgba(200,80,80,.8);">00:00:00</div>
+    <div>BLOOD INTEGRITY: CRITICAL</div>
+    <div class="warn">THEY ARE STILL WATCHING</div>
+  </div>
+</div>
 
-  <script>
-    const INVITE = {
-      name: "Sam Newman",
-      story: "When everything becomes noise, there are still a few names that remain. Through every dark turn, every bad night, every memory worth keeping, you have always been one of mine.",
-      quote: "The tape erased almost everyone else. It kept bringing your name back.",
-      final: "When that day comes and everything changes, I do not want you somewhere in the distance. I want you beside me when it matters.",
-      tapeLines: [
-        "Tape recovery initialized.",
-        "Forest audio layer restored.",
-        "Visual fragments incomplete.",
-        "Three subjects entered the tree line.",
-        "Two voices returned on the recording.",
-        "One voice was never identified.",
-        "The camera kept running after the lights went out.",
-        "The file was deleted.",
-        "The file returned.",
-        "A name began appearing in the static.",
-        "...",
-        "It was your name."
-      ]
-    };
+<section class="section active" id="screen1">
+  <div class="overline">&#x2620; CLASSIFIED REMAINS / BLOOD ARCHIVE VII &#x2620;</div>
+  <div class="title glitch" data-text="SOMETHING CRAWLED BACK FROM THE DARK.">SOMETHING CRAWLED BACK FROM THE DARK.</div>
+  <div class="divider"></div>
+  <div class="subtitle">The forensic team found the tape buried three feet beneath a church. The outside was caked in dried blood. The label had been scratched off &mdash; except for a name.<br><br>They played it once. One investigator quit on the spot. The other two never spoke again.<br>The name on the tape... was yours.</div>
+  <div class="fileList">
+    <div class="fileHeader"><div>&#x1F9B4; Recovered Evidence</div><div>Status</div><div>Threat Level</div></div>
+    <div class="fileRow corrupt"><div>victim_01_screaming_stops.mov</div><div>CORRUPTED</div><div>&#x1F534; EXTREME</div></div>
+    <div class="fileRow corrupt"><div>victim_02_no_body_found.avi</div><div>MISSING</div><div>&#x1F534; EXTREME</div></div>
+    <div class="fileRow gore"><div>severed_audio_unknown_origin.wav</div><div>LOOPING</div><div>&#x26AB; CRITICAL</div></div>
+    <div class="fileRow active"><div>BLOOD_TARGET_IDENTITY.dat</div><div>&#x2620; ACTIVE</div><div>&#x1F534; YOU</div></div>
+  </div>
+  <div class="buttons"><button class="btn btnMain" id="beginBtn">&#x2620; OPEN THE BLOOD FILE &#x2620;</button></div>
+</section>
 
-    const screen1 = document.getElementById("screen1");
-    const screen2 = document.getElementById("screen2");
-    const screen3 = document.getElementById("screen3");
-    const screen4 = document.getElementById("screen4");
+<section class="section" id="screen2">
+  <div class="overline">&#x1F9B4; DECRYPTING REMAINS / GORE ARCHIVE ACTIVE &#x1F9B4;</div>
+  <div class="title"><span class="bl">DO NOT</span> LET IT FINISH LOADING.</div>
+  <div class="typebox" id="typebox"></div>
+  <div class="buttons">
+    <button class="btn" id="skipBtn">&#x26A0; SILENCE THE SCREAMING</button>
+    <button class="btn btnMain" id="openBtn" style="display:none;">&#x2620; OPEN IDENTITY REMAINS &#x2620;</button>
+  </div>
+</section>
 
-    const beginBtn = document.getElementById("beginBtn");
-    const skipBtn = document.getElementById("skipBtn");
-    const openBtn = document.getElementById("openBtn");
-    const acceptBtn = document.getElementById("acceptBtn");
-    const replayBtn = document.getElementById("replayBtn");
-    const restartBtn = document.getElementById("restartBtn");
+<section class="section" id="screen3">
+  <div class="profileWrap"><div class="profileCard">
+    <div class="profileMeta">
+      <div>
+        <div class="label">&#x2620; marked for survival &mdash; blood target identified &#x2620;</div>
+        <div class="name" id="personName">Sam Newman</div>
+        <div class="role">&#x1F480; CHOSEN WITNESS / STANDING GUARD AT THE ALTAR &#x1F480;</div>
+      </div>
+      <div class="stamp">&#x2620; MARKED / BLED / CHOSEN &#x2620;</div>
+    </div>
+    <div class="desc" id="personStory">We've been through hell together. Real hell. The kind where you're not sure you're getting out, and the only reason you keep moving is because someone is still standing next to you. That's what you've been. Every nightmare, every dark corridor, every moment I thought the whole thing was coming apart &mdash; you were there, covered in the same mess, still standing.</div>
+    <div class="quote" id="personQuote">&#x1F480; &nbsp;The bodies on the tape had names. Yours kept coming back, no matter how many times they tried to bury it. Some things refuse to die. &nbsp;&#x1F480;</div>
+    <div class="ask">WILL YOU STAND BESIDE ME<br><span class="bl">AS MY GROOMSMAN?</span><br><span style="font-size:.45em;letter-spacing:.15em;color:rgba(200,100,100,.7);">(IF YOU SURVIVE LONG ENOUGH)</span></div>
+    <div class="buttons">
+      <button class="btn btnMain" id="acceptBtn">&#x2620; ACCEPT THE BLOOD OATH &#x2620;</button>
+      <button class="btn" id="replayBtn">&#x1F480; REPLAY THE HORROR</button>
+    </div>
+  </div></div>
+</section>
 
-    const typebox = document.getElementById("typebox");
-    const personName = document.getElementById("personName");
-    const personStory = document.getElementById("personStory");
-    const personQuote = document.getElementById("personQuote");
-    const finalMessage = document.getElementById("finalMessage");
-    const timecode = document.getElementById("timecode");
+<section class="section" id="screen4">
+  <div class="overline">&#x2620; BLOOD OATH SEALED / NO ESCAPE &#x2620;</div>
+  <div class="title glitch" data-text="GOOD. YOUR FATE IS SEALED IN BLOOD."><span class="bl">GOOD.</span> YOUR FATE IS SEALED IN BLOOD.</div>
+  <div class="divider"></div>
+  <div class="subtitle" id="finalMessage">There's no taking it back now. The oath is written. The altar is set. When that day comes &mdash; when everything is burning and the music starts and all eyes are watching &mdash; I want you standing next to me, covered in glory, not gore.<br><br>...Well. Maybe a little gore. For old times' sake.</div>
+  <div style="font-size:60px;margin-top:20px;animation:skullPulse 1.5s ease-in-out infinite;">&#x1F480;&#x1F6A9;&#x1F480;</div>
+  <div class="buttons"><button class="btn btnMain" id="restartBtn">&#x1F480; CRAWL BACK TO THE START</button></div>
+</section>
 
-    const flashWhite = document.getElementById("flashWhite");
-    const flashRed = document.getElementById("flashRed");
-    const figureFlash = document.getElementById("figureFlash");
+<div class="footer">
+  <div class="danger">&#x26A0; WARNING: REPEATED EXPOSURE CAUSES PERMANENT LOYALTY &#x26A0;</div>
+  <div>BLOOD ARCHIVE VII / GROOMSMAN BINDING / HAWTHORNE</div>
+</div>
+</div></div>
+<script>
+const INVITE={
+  name:"Sam Newman",
+  tapeLines:[
+    "BLOOD ARCHIVE INITIALIZING...",
+    "Scanning for surviving tissue...",
+    "WARNING: Unidentified screaming detected.",
+    "Three subjects entered the structure.",
+    "Only one set of footprints returned.",
+    "The camera kept recording after the lights failed.",
+    "Something moved in the dark. Something large.",
+    "A name was carved into the wall.",
+    "The same name appeared in the dried blood on the floor.",
+    "The file was deleted six times.",
+    "The file kept returning.",
+    "It wants to be seen.",
+    "It wants YOU to see it.",
+    "...",
+    "The name is yours."
+  ]
+};
+const[s1,s2,s3,s4]=['screen1','screen2','screen3','screen4'].map(id=>document.getElementById(id));
+const tb=document.getElementById('typebox');
+const[fw,fr,fb]=['flashWhite','flashRed','flashBlood'].map(id=>document.getElementById(id));
+let typeDone=false,typeTimer=null,glitchInt=null;
+function show(t){[s1,s2,s3,s4].forEach(s=>s.classList.remove('active'));t.classList.add('active');}
+function wf(){fw.classList.remove('on');void fw.offsetWidth;fw.classList.add('on');}
+function rf(){fr.classList.remove('on');void fr.offsetWidth;fr.classList.add('on');}
+function bf(){fb.classList.remove('on');void fb.offsetWidth;fb.classList.add('on');}
+function corrupt(ch){
+  if(ch==='
+'||ch===' ')return ch;
+  if(Math.random()>.974){const s=['#','%','/','=','?','☠','0','X','Ὀ0','|'];return s[Math.floor(Math.random()*s.length)];}
+  return ch;
+}
+function typeLines(lines){
+  clearTimeout(typeTimer);typeDone=false;
+  document.getElementById('openBtn').style.display='none';
+  tb.innerHTML='';
+  const full=lines.join('
+');let i=0;
+  function step(){
+    let vis=full.slice(0,i).split('').map(corrupt).join('');
+    if(i>full.length*.75&&i<full.length*.92&&Math.random()>.78)vis+='
 
-    let typingDone = false;
-    let typingTimer = null;
-    let glitchInterval = null;
-
-    function showScreen(target){
-      [screen1, screen2, screen3, screen4].forEach(s => s.classList.remove("active"));
-      target.classList.add("active");
+💀 '+INVITE.name.slice(0,Math.max(1,Math.floor(Math.random()*INVITE.name.length)));
+    tb.innerHTML=vis+'<span class="cursor">█</span>';
+    i++;
+    if(i<=full.length){
+      if(Math.random()>.89)staticBurst(.14+Math.random()*.12,.09+Math.random()*.07);
+      if(Math.random()>.97)rf();
+      if(Math.random()>.98)bf();
+      if(Math.random()>.96)alarmPulse();
+      if(Math.random()>.98)wf();
+      const cur=full[i-1];
+      typeTimer=setTimeout(step,cur==='
+'?300:cur==='.'?200:Math.random()*25+18);
+    } else {
+      typeDone=true;
+      tb.innerHTML=full.replace(/
+/g,'<br>')+'<br><br>💀 '+INVITE.name+' 💀';
+      document.getElementById('openBtn').style.display='inline-block';
     }
+  }
+  step();
+}
+function skipTyping(){
+  clearTimeout(typeTimer);
+  tb.innerHTML=INVITE.tapeLines.join('<br>')+'<br><br>💀 '+INVITE.name+' 💀';
+  typeDone=true;document.getElementById('openBtn').style.display='inline-block';
+}
+document.getElementById('beginBtn').addEventListener('click',()=>{startAudio();wf();bf();heavyGlitches();show(s2);typeLines(INVITE.tapeLines);});
+document.getElementById('skipBtn').addEventListener('click',skipTyping);
+document.getElementById('openBtn').addEventListener('click',()=>{wf();staticBurst(.25,.18);bf();lowBoom();show(s3);});
+document.getElementById('acceptBtn').addEventListener('click',()=>{bf();rf();impactBoom();show(s4);spawnBloodExplosion();});
+document.getElementById('replayBtn').addEventListener('click',()=>{wf();staticBurst(.18,.12);show(s1);});
+document.getElementById('restartBtn').addEventListener('click',()=>{wf();staticBurst(.18,.12);show(s1);});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.code==='Enter'){
+    e.preventDefault();
+    if(s1.classList.contains('active'))document.getElementById('beginBtn').click();
+    else if(s2.classList.contains('active')){if(!typeDone)skipTyping();else document.getElementById('openBtn').click();}
+    else if(s3.classList.contains('active'))document.getElementById('acceptBtn').click();
+    else if(s4.classList.contains('active'))document.getElementById('restartBtn').click();
+  }
+});
+setInterval(()=>{const d=new Date(),h=String(d.getHours()).padStart(2,'0'),m=String(d.getMinutes()).padStart(2,'0'),s=String(d.getSeconds()).padStart(2,'0');document.getElementById('timecode').textContent=h+':'+m+':'+s;},1000);
 
-    function whiteFlash(){
-      flashWhite.classList.remove("on");
-      void flashWhite.offsetWidth;
-      flashWhite.classList.add("on");
+// BLOOD DRIPS
+function createBloodDrips(){
+  const c=document.getElementById('bloodDrips');c.innerHTML='';
+  const n=Math.floor(window.innerWidth/55)+4;
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');d.className='blood-drip';
+    const len=Math.random()*160+60;
+    d.style.cssText='left:'+Math.random()*100+'%;width:'+(Math.random()*5+2)+'px;--len:'+len+'px;--dur:'+(Math.random()*6+4)+'s;--delay:-'+(Math.random()*10)+'s;';
+    c.appendChild(d);
+  }
+}
+createBloodDrips();
+window.addEventListener('resize',createBloodDrips);
+
+function spawnBloodExplosion(){
+  const c=document.getElementById('bloodDrips');
+  for(let i=0;i<30;i++){
+    const sp=document.createElement('div');
+    sp.style.cssText='position:absolute;left:'+Math.random()*100+'%;top:'+Math.random()*100+'%;width:'+(Math.random()*12+4)+'px;height:'+(Math.random()*12+4)+'px;background:rgba('+(180+Math.floor(Math.random()*75))+',0,0,.8);border-radius:50%;animation:bloodSplat .8s ease-out forwards;';
+    c.appendChild(sp);setTimeout(()=>sp.remove(),1000);
+  }
+}
+
+// CANVAS
+const canvas=document.getElementById('bg'),ctx=canvas.getContext('2d');
+let cw=canvas.width=innerWidth,ch=canvas.height=innerHeight;
+let stars=[],embers=[],bloodPools=[],deadFrames=0;
+function resize(){cw=canvas.width=innerWidth;ch=canvas.height=innerHeight;buildScene();}
+addEventListener('resize',resize);
+function buildScene(){
+  stars=Array.from({length:120},()=>({x:Math.random()*cw,y:Math.random()*ch*.55,r:Math.random()*.8+.2,a:Math.random()*.3+.05,flicker:Math.random()>.7}));
+  embers=Array.from({length:65},()=>({x:Math.random()*cw,y:ch+Math.random()*100,vx:(Math.random()-.5)*.35,vy:-(Math.random()*1.2+.3),r:Math.random()*3.5+.8,a:Math.random()*.6+.15,hot:Math.random()>.3}));
+  bloodPools=Array.from({length:8},()=>({x:Math.random()*cw,y:ch*.78+Math.random()*ch*.18,rx:Math.random()*80+40,ry:Math.random()*18+6,a:Math.random()*.4+.1}));
+}
+buildScene();
+function drawHellSky(){
+  const g=ctx.createLinearGradient(0,0,0,ch);
+  g.addColorStop(0,'#010101');g.addColorStop(.3,'#060003');g.addColorStop(.6,'#1a0002');g.addColorStop(.82,'#2a0003');g.addColorStop(1,'#0a0001');
+  ctx.fillStyle=g;ctx.fillRect(0,0,cw,ch);
+}
+function drawStars(){
+  for(const s of stars){
+    if(s.flicker)s.a+=(Math.random()-.5)*.025;
+    s.a=Math.max(.02,Math.min(.35,s.a));
+    ctx.beginPath();ctx.fillStyle='rgba('+(s.flicker?'255,80,80':'220,200,200')+','+s.a+')';
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();
+  }
+}
+function drawBloodMoon(){
+  const t=performance.now()*.0003,mx=cw*.72,my=ch*.15,pulse=(Math.sin(t)+1)*.5;
+  const grad=ctx.createRadialGradient(mx,my,0,mx,my,90+pulse*10);
+  grad.addColorStop(0,'rgba(180,'+(Math.floor(pulse*20))+',0,'+(0.85+pulse*.1)+')');
+  grad.addColorStop(.45,'rgba(120,0,0,'+(0.7+pulse*.1)+')');
+  grad.addColorStop(.75,'rgba(60,0,0,.3)');grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.arc(mx,my,90+pulse*10,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
+}
+function drawFog(){
+  const t=performance.now()*.00008;
+  for(let i=0;i<7;i++){
+    const y=ch*.25+i*35+Math.sin(t*3+i)*12,x=Math.sin(t*1.5+i*1.2)*100;
+    const gr=ctx.createLinearGradient(x,y,x+cw,y+40);const a=.008+Math.random()*.006;
+    gr.addColorStop(0,'rgba(80,0,0,0)');gr.addColorStop(.2,'rgba(80,0,0,'+a+')');
+    gr.addColorStop(.5,'rgba(100,0,0,'+(a*2)+')');gr.addColorStop(.8,'rgba(80,0,0,'+a+')');gr.addColorStop(1,'rgba(80,0,0,0)');
+    ctx.fillStyle=gr;ctx.fillRect(-120,y,cw+240,55);
+  }
+}
+function drawGround(){
+  ctx.save();
+  const g=ctx.createLinearGradient(0,ch*.72,0,ch);
+  g.addColorStop(0,'rgba(8,0,0,0)');g.addColorStop(.3,'rgba(15,0,0,.9)');g.addColorStop(1,'rgba(5,0,0,1)');
+  ctx.fillStyle=g;ctx.beginPath();
+  ctx.moveTo(0,ch*.78);ctx.bezierCurveTo(cw*.15,ch*.68,cw*.33,ch*.84,cw*.48,ch*.75);
+  ctx.bezierCurveTo(cw*.68,ch*.64,cw*.82,ch*.83,cw,ch*.76);
+  ctx.lineTo(cw,ch);ctx.lineTo(0,ch);ctx.closePath();ctx.fill();ctx.restore();
+}
+function drawBloodPools(){
+  for(const p of bloodPools){
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.rx);
+    g.addColorStop(0,'rgba(120,0,0,'+p.a+')');g.addColorStop(.5,'rgba(80,0,0,'+(p.a*.6)+')');g.addColorStop(1,'rgba(40,0,0,0)');
+    ctx.save();ctx.scale(1,p.ry/p.rx);ctx.beginPath();
+    ctx.arc(p.x,p.y*p.rx/p.ry,p.rx,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();ctx.restore();
+  }
+}
+function drawDeadTrees(){
+  const base=ch*.82;ctx.save();ctx.strokeStyle='rgba(4,0,0,.99)';ctx.lineCap='round';
+  const count=Math.floor(cw/50)+2;
+  for(let i=0;i<count;i++){
+    const x=i*(cw/count)+Math.random()*20-10,h2=Math.random()*(ch*.3)+ch*.15,w2=Math.random()*5+1.5,tilt=(Math.random()-.5)*.1;
+    ctx.lineWidth=w2;ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(x+tilt*h2,base-h2);ctx.stroke();
+    for(let j=0;j<6;j++){
+      const by=base-h2*(0.15+Math.random()*.8),bx=x+tilt*(base-by),len=Math.random()*28+8,ang=(Math.random()-.5)*1.2;
+      ctx.lineWidth=Math.random()*1.5+.5;
+      ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx+Math.cos(ang)*len,by-Math.abs(Math.sin(ang))*len*1.2);ctx.stroke();
     }
-
-    function redFlash(){
-      flashRed.classList.remove("on");
-      void flashRed.offsetWidth;
-      flashRed.classList.add("on");
-    }
-
-    function shadowFlash(){
-      figureFlash.classList.remove("on");
-      void figureFlash.offsetWidth;
-      figureFlash.classList.add("on");
-    }
-
-    function loadInvite(){
-      personName.textContent = INVITE.name;
-      personStory.textContent = INVITE.story;
-      personQuote.textContent = INVITE.quote;
-      finalMessage.textContent = INVITE.final;
-    }
-
-    function corruptChar(ch){
-      if(ch === "\n" || ch === " ") return ch;
-      if(Math.random() > 0.978){
-        const set = ["#", "%", "/", "=", "?", ":", "|", "0", "X", "[" , "]"];
-        return set[Math.floor(Math.random() * set.length)];
-      }
-      return ch;
-    }
-
-    function typeLines(lines){
-      clearTimeout(typingTimer);
-      typingDone = false;
-      openBtn.style.display = "none";
-      typebox.innerHTML = "";
-
-      const fullText = lines.join("\n");
-      let i = 0;
-
-      function step(){
-        let raw = fullText.slice(0, i);
-        let visible = raw.split("").map(corruptChar).join("");
-
-        if(i > fullText.length * 0.78 && i < fullText.length * 0.94 && Math.random() > 0.8){
-          visible += "\n\n" + INVITE.name.slice(0, Math.max(1, Math.floor(Math.random() * INVITE.name.length)));
-        }
-
-        typebox.innerHTML = visible + '<span class="cursor">|</span>';
-        i++;
-
-        if(i <= fullText.length){
-          if(Math.random() > 0.91) staticBurst(0.16 + Math.random() * 0.12, 0.10 + Math.random() * 0.06);
-          if(Math.random() > 0.975) redFlash();
-          if(Math.random() > 0.985) shadowFlash();
-          if(Math.random() > 0.965) alarmPulse();
-
-          const current = fullText[i - 1];
-          const speed =
-            current === "\n" ? 260 :
-            current === "." ? 180 :
-            Math.random() * 28 + 20;
-
-          typingTimer = setTimeout(step, speed);
-        } else {
-          typingDone = true;
-          typebox.textContent = fullText + "\n\n" + INVITE.name;
-          openBtn.style.display = "inline-block";
-        }
-      }
-
-      step();
-    }
-
-    function skipTyping(){
-      clearTimeout(typingTimer);
-      typebox.textContent = INVITE.tapeLines.join("\n") + "\n\n" + INVITE.name;
-      typingDone = true;
-      openBtn.style.display = "inline-block";
-    }
-
-    beginBtn.addEventListener("click", () => {
-      startAudio();
-      whiteFlash();
-      subtleGlitches();
-      showScreen(screen2);
-      typeLines(INVITE.tapeLines);
-    });
-
-    skipBtn.addEventListener("click", skipTyping);
-
-    openBtn.addEventListener("click", () => {
-      loadInvite();
-      whiteFlash();
-      staticBurst(0.22, 0.15);
-      lowBoom();
-      showScreen(screen3);
-    });
-
-    acceptBtn.addEventListener("click", () => {
-      redFlash();
-      impactBoom();
-      showScreen(screen4);
-    });
-
-    replayBtn.addEventListener("click", () => {
-      whiteFlash();
-      staticBurst(0.18, 0.12);
-      showScreen(screen1);
-    });
-
-    restartBtn.addEventListener("click", () => {
-      whiteFlash();
-      staticBurst(0.18, 0.12);
-      showScreen(screen1);
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if(e.code === "Space" || e.code === "Enter"){
-        e.preventDefault();
-
-        if(screen1.classList.contains("active")) beginBtn.click();
-        else if(screen2.classList.contains("active")){
-          if(!typingDone) skipTyping();
-          else openBtn.click();
-        } else if(screen3.classList.contains("active")) acceptBtn.click();
-        else if(screen4.classList.contains("active")) restartBtn.click();
-      }
-    });
-
-    setInterval(() => {
-      const d = new Date();
-      const h = String(d.getHours()).padStart(2, "0");
-      const m = String(d.getMinutes()).padStart(2, "0");
-      const s = String(d.getSeconds()).padStart(2, "0");
-      timecode.textContent = `${h}:${m}:${s}`;
-    }, 1000);
-
-    const canvas = document.getElementById("bg");
-    const ctx = canvas.getContext("2d");
-    let w = canvas.width = innerWidth;
-    let h = canvas.height = innerHeight;
-
-    let stars = [];
-    let embers = [];
-    let trees = [];
-    let deadFrames = 0;
-    let shockwave = 0;
-
-    function resize(){
-      w = canvas.width = innerWidth;
-      h = canvas.height = innerHeight;
-      buildScene();
-    }
-    addEventListener("resize", resize);
-
-    function buildScene(){
-      stars = Array.from({length: 170}, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h * .65,
-        r: Math.random() * 1.2 + .2,
-        a: Math.random() * .45 + .08
-      }));
-
-      embers = Array.from({length: 42}, () => ({
-        x: Math.random() * w,
-        y: h + Math.random() * 120,
-        vx: (Math.random() - .5) * .22,
-        vy: -(Math.random() * .95 + .20),
-        r: Math.random() * 2.2 + .6,
-        a: Math.random() * .35 + .10
-      }));
-
-      trees = Array.from({length: Math.floor(w/42)}, (_, i) => ({
-        x: i * 42 + Math.random() * 20,
-        h: Math.random() * (h * .28) + h * .18,
-        w: Math.random() * 6 + 2,
-        tilt: (Math.random() - .5) * 0.08
-      }));
-    }
-    buildScene();
-
-    function drawSky(){
-      const g = ctx.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(0, "#010101");
-      g.addColorStop(.45, "#070707");
-      g.addColorStop(.76, "#160505");
-      g.addColorStop(1, "#040404");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-    }
-
-    function drawStars(){
-      for(const s of stars){
-        s.a += (Math.random() - .5) * .012;
-        if(s.a < .05) s.a = .05;
-        if(s.a > .5) s.a = .5;
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(255,255,255,${s.a})`;
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function drawFog(){
-      const t = performance.now() * 0.00012;
-      for(let i=0;i<6;i++){
-        const y = h * .18 + i * 44 + Math.sin(t * 4 + i) * 10;
-        const x = Math.sin(t * 2 + i * 1.4) * 90;
-        const grad = ctx.createLinearGradient(x, y, x + w, y + 45);
-        grad.addColorStop(0,"rgba(255,255,255,0)");
-        grad.addColorStop(.18,"rgba(255,255,255,.012)");
-        grad.addColorStop(.5,"rgba(255,255,255,.035)");
-        grad.addColorStop(.82,"rgba(255,255,255,.010)");
-        grad.addColorStop(1,"rgba(255,255,255,0)");
-        ctx.fillStyle = grad;
-        ctx.fillRect(-120, y, w + 240, 80);
-      }
-    }
-
-    function drawShockwave(){
-      shockwave += 0.005;
-      const r = (Math.sin(shockwave) + 1) * .5;
-      ctx.save();
-      ctx.strokeStyle = `rgba(255,130,80,${0.02 + r * 0.03})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(w * .5, h * .8, h * (.05 + r * .04), Math.PI, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawGround(){
-      ctx.save();
-      ctx.fillStyle = "#040404";
-      ctx.beginPath();
-      ctx.moveTo(0, h * .80);
-      ctx.bezierCurveTo(w * .18, h * .70, w * .36, h * .86, w * .52, h * .77);
-      ctx.bezierCurveTo(w * .72, h * .66, w * .85, h * .85, w, h * .77);
-      ctx.lineTo(w, h);
-      ctx.lineTo(0, h);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function drawTrees(){
-      const baseY = h * .82;
-      ctx.save();
-      ctx.strokeStyle = "rgba(8,8,8,.98)";
-      ctx.lineCap = "round";
-
-      for(const t of trees){
-        ctx.lineWidth = t.w;
-        ctx.beginPath();
-        ctx.moveTo(t.x, baseY);
-        ctx.lineTo(t.x + t.tilt * t.h, baseY - t.h);
-        ctx.stroke();
-
-        for(let j=0;j<5;j++){
-          const by = baseY - t.h * (0.2 + Math.random() * 0.65);
-          const bx = t.x + t.tilt * (baseY - by);
-          const len = Math.random() * 22 + 10;
-
-          ctx.beginPath();
-          ctx.moveTo(bx, by);
-          ctx.lineTo(bx - len, by - Math.random() * 14);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.moveTo(bx, by);
-          ctx.lineTo(bx + len, by - Math.random() * 14);
-          ctx.stroke();
-        }
-      }
-      ctx.restore();
-    }
-
-    function drawEmbers(){
-      for(const e of embers){
-        e.x += e.vx;
-        e.y += e.vy;
-        e.a -= .0011;
-
-        if(e.y < h * .46 || e.a <= 0){
-          e.x = Math.random() * w;
-          e.y = h + Math.random() * 120;
-          e.vx = (Math.random() - .5) * .22;
-          e.vy = -(Math.random() * .95 + .20);
-          e.r = Math.random() * 2.2 + .6;
-          e.a = Math.random() * .35 + .10;
-        }
-
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(255,70,30,${e.a})`;
-        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function drawDeadFrameOverlay(){
-      if(deadFrames > 0){
-        ctx.fillStyle = "rgba(0,0,0,.20)";
-        ctx.fillRect(0,0,w,h);
-        deadFrames--;
-      }
-    }
-
-    function drawFrame(){
-      const jitterX = Math.random() > .97 ? (Math.random() - .5) * 5 : 0;
-      const jitterY = Math.random() > .985 ? (Math.random() - .5) * 3 : 0;
-      if(Math.random() > .9965) deadFrames = 2;
-
-      ctx.save();
-      ctx.translate(jitterX, jitterY);
-      drawSky();
-      drawStars();
-      drawFog();
-      drawShockwave();
-      drawGround();
-      drawTrees();
-      drawEmbers();
-      drawDeadFrameOverlay();
-      ctx.restore();
-
-      requestAnimationFrame(drawFrame);
-    }
-    drawFrame();
-
-    let audioCtx, master, started = false, hissGain;
-
-    function startAudio(){
-      if(started) return;
-      started = true;
-
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      master = audioCtx.createGain();
-      master.gain.value = 0.34;
-      master.connect(audioCtx.destination);
-
-      const rumbleOsc = audioCtx.createOscillator();
-      rumbleOsc.type = "sine";
-      rumbleOsc.frequency.value = 31;
-
-      const rumbleGain = audioCtx.createGain();
-      rumbleGain.gain.value = 0.065;
-
-      const humOsc = audioCtx.createOscillator();
-      humOsc.type = "sawtooth";
-      humOsc.frequency.value = 54;
-
-      const humFilter = audioCtx.createBiquadFilter();
-      humFilter.type = "lowpass";
-      humFilter.frequency.value = 105;
-
-      const humGain = audioCtx.createGain();
-      humGain.gain.value = 0.011;
-
-      const whisperTone = audioCtx.createOscillator();
-      whisperTone.type = "triangle";
-      whisperTone.frequency.value = 184;
-
-      const whisperFilter = audioCtx.createBiquadFilter();
-      whisperFilter.type = "bandpass";
-      whisperFilter.frequency.value = 280;
-      whisperFilter.Q.value = 3.5;
-
-      const whisperGain = audioCtx.createGain();
-      whisperGain.gain.value = 0.0017;
-
-      const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
-      const data = noiseBuffer.getChannelData(0);
-      for(let i=0;i<data.length;i++) data[i] = Math.random() * 2 - 1;
-
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = noiseBuffer;
-      noise.loop = true;
-
-      const hissFilter = audioCtx.createBiquadFilter();
-      hissFilter.type = "bandpass";
-      hissFilter.frequency.value = 2700;
-      hissFilter.Q.value = 0.9;
-
-      hissGain = audioCtx.createGain();
-      hissGain.gain.value = 0.011;
-
-      rumbleOsc.connect(rumbleGain).connect(master);
-      humOsc.connect(humFilter).connect(humGain).connect(master);
-      whisperTone.connect(whisperFilter).connect(whisperGain).connect(master);
-      noise.connect(hissFilter).connect(hissGain).connect(master);
-
-      rumbleOsc.start();
-      humOsc.start();
-      whisperTone.start();
-      noise.start();
-
-      setInterval(() => {
-        if(!audioCtx) return;
-        rumbleOsc.frequency.setTargetAtTime(29 + Math.random() * 4, audioCtx.currentTime, .8);
-        humOsc.frequency.setTargetAtTime(52 + Math.random() * 7, audioCtx.currentTime, .7);
-        whisperTone.frequency.setTargetAtTime(176 + Math.random() * 22, audioCtx.currentTime, .9);
-        hissGain.gain.setTargetAtTime(0.009 + Math.random() * 0.010, audioCtx.currentTime, .5);
-      }, 1250);
-    }
-
-    function staticBurst(length = 0.25, volume = 0.18){
-      if(!audioCtx) return;
-      const now = audioCtx.currentTime;
-      const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * length, audioCtx.sampleRate);
-      const arr = buffer.getChannelData(0);
-
-      for(let i=0;i<arr.length;i++){
-        arr[i] = (Math.random() * 2 - 1) * (1 - i / arr.length);
-      }
-
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = 1000 + Math.random() * 1500;
-      filter.Q.value = 1.1;
-
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(volume, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + length);
-
-      src.connect(filter).connect(gain).connect(master);
-      src.start(now);
-      src.stop(now + length + 0.01);
-    }
-
-    function lowBoom(){
-      if(!audioCtx) return;
-      const now = audioCtx.currentTime;
-
-      const osc = audioCtx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(62, now);
-      osc.frequency.exponentialRampToValueAtTime(24, now + 1.0);
-
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.value = 85;
-
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(0.22, now + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.1);
-
-      osc.connect(filter).connect(gain).connect(master);
-      osc.start(now);
-      osc.stop(now + 1.15);
-    }
-
-    function impactBoom(){
-      if(!audioCtx) return;
-      lowBoom();
-      setTimeout(() => staticBurst(0.20, 0.16), 45);
-      setTimeout(() => staticBurst(0.23, 0.18), 120);
-      setTimeout(() => staticBurst(0.18, 0.12), 220);
-      setTimeout(() => shadowFlash(), 70);
-    }
-
-    function alarmPulse(){
-      if(!audioCtx) return;
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(780, now);
-
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = 880;
-      filter.Q.value = 6;
-
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(0.04, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-
-      osc.connect(filter).connect(gain).connect(master);
-      osc.start(now);
-      osc.stop(now + 0.20);
-    }
-
-    function subtleGlitches(){
-      clearInterval(glitchInterval);
-      glitchInterval = setInterval(() => {
-        if(Math.random() > .52) staticBurst(0.16 + Math.random() * 0.12, 0.10 + Math.random() * 0.06);
-        if(Math.random() > .82) whiteFlash();
-        if(Math.random() > .90) redFlash();
-        if(Math.random() > .93) shadowFlash();
-        if(Math.random() > .91) alarmPulse();
-      }, 1700);
-    }
-  </script>
+  }
+  ctx.restore();
+}
+function drawEmbers(){
+  for(const e of embers){
+    e.x+=e.vx;e.y+=e.vy;e.a-=.0008;e.vx+=(Math.random()-.5)*.01;
+    if(e.y<ch*.35||e.a<=0){e.x=Math.random()*cw;e.y=ch+Math.random()*80;e.vx=(Math.random()-.5)*.35;e.vy=-(Math.random()*1.2+.3);e.r=Math.random()*3.5+.8;e.a=Math.random()*.6+.15;e.hot=Math.random()>.3;}
+    ctx.beginPath();ctx.fillStyle='rgba('+(e.hot?'180,0,0':'255,60,0')+','+e.a+')';ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
+  }
+}
+function loop(){
+  const jx=Math.random()>.97?(Math.random()-.5)*6:0,jy=Math.random()>.988?(Math.random()-.5)*4:0;
+  if(Math.random()>.9975)deadFrames=3;
+  ctx.save();ctx.translate(jx,jy);
+  drawHellSky();drawStars();drawBloodMoon();drawFog();drawGround();drawBloodPools();drawDeadTrees();drawEmbers();
+  if(deadFrames>0){ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(0,0,cw,ch);deadFrames--;}
+  ctx.restore();requestAnimationFrame(loop);
+}
+loop();
+
+// AUDIO
+let audioCtx,master,started=false;
+function startAudio(){
+  if(started)return;started=true;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  master=audioCtx.createGain();master.gain.value=.38;master.connect(audioCtx.destination);
+  const rum=audioCtx.createOscillator();rum.type='sine';rum.frequency.value=28;
+  const rg=audioCtx.createGain();rg.gain.value=.08;rum.connect(rg).connect(master);rum.start();
+  const hum=audioCtx.createOscillator();hum.type='sawtooth';hum.frequency.value=48;
+  const hf=audioCtx.createBiquadFilter();hf.type='lowpass';hf.frequency.value=90;
+  const hg=audioCtx.createGain();hg.gain.value=.015;hum.connect(hf).connect(hg).connect(master);hum.start();
+  const nb=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate);
+  const nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  const ns=audioCtx.createBufferSource();ns.buffer=nb;ns.loop=true;
+  const nf=audioCtx.createBiquadFilter();nf.type='bandpass';nf.frequency.value=2400;nf.Q.value=.8;
+  const ng=audioCtx.createGain();ng.gain.value=.013;ns.connect(nf).connect(ng).connect(master);ns.start();
+  const wh=audioCtx.createOscillator();wh.type='triangle';wh.frequency.value=160;
+  const wf2=audioCtx.createBiquadFilter();wf2.type='bandpass';wf2.frequency.value=240;wf2.Q.value=4;
+  const wg=audioCtx.createGain();wg.gain.value=.0022;wh.connect(wf2).connect(wg).connect(master);wh.start();
+  setInterval(()=>{
+    if(!audioCtx)return;
+    rum.frequency.setTargetAtTime(25+Math.random()*6,audioCtx.currentTime,.9);
+    hum.frequency.setTargetAtTime(45+Math.random()*9,audioCtx.currentTime,.7);
+    ng.gain.setTargetAtTime(.01+Math.random()*.012,audioCtx.currentTime,.5);
+  },1400);
+}
+function staticBurst(len,vol){
+  if(!audioCtx)return;const now=audioCtx.currentTime;
+  const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*len,audioCtx.sampleRate);
+  const arr=buf.getChannelData(0);for(let i=0;i<arr.length;i++)arr[i]=(Math.random()*2-1)*(1-i/arr.length);
+  const src=audioCtx.createBufferSource();src.buffer=buf;
+  const flt=audioCtx.createBiquadFilter();flt.type='bandpass';flt.frequency.value=800+Math.random()*1200;flt.Q.value=1.2;
+  const gn=audioCtx.createGain();gn.gain.setValueAtTime(.0001,now);gn.gain.linearRampToValueAtTime(vol,now+.012);gn.gain.exponentialRampToValueAtTime(.0001,now+len);
+  src.connect(flt).connect(gn).connect(master);src.start(now);src.stop(now+len+.02);
+}
+function lowBoom(){
+  if(!audioCtx)return;const now=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator();osc.type='sine';
+  osc.frequency.setValueAtTime(55,now);osc.frequency.exponentialRampToValueAtTime(20,now+1.2);
+  const flt=audioCtx.createBiquadFilter();flt.type='lowpass';flt.frequency.value=80;
+  const gn=audioCtx.createGain();gn.gain.setValueAtTime(.0001,now);gn.gain.linearRampToValueAtTime(.28,now+.04);gn.gain.exponentialRampToValueAtTime(.0001,now+1.3);
+  osc.connect(flt).connect(gn).connect(master);osc.start(now);osc.stop(now+1.4);
+}
+function impactBoom(){
+  if(!audioCtx)return;lowBoom();
+  setTimeout(()=>staticBurst(.22,.18),40);setTimeout(()=>staticBurst(.25,.22),100);
+  setTimeout(()=>staticBurst(.20,.15),200);setTimeout(()=>bf(),60);setTimeout(()=>rf(),160);
+}
+function alarmPulse(){
+  if(!audioCtx)return;const now=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator();osc.type='square';osc.frequency.setValueAtTime(640,now);
+  const flt=audioCtx.createBiquadFilter();flt.type='bandpass';flt.frequency.value=700;flt.Q.value=5;
+  const gn=audioCtx.createGain();gn.gain.setValueAtTime(.0001,now);gn.gain.linearRampToValueAtTime(.055,now+.012);gn.gain.exponentialRampToValueAtTime(.0001,now+.22);
+  osc.connect(flt).connect(gn).connect(master);osc.start(now);osc.stop(now+.25);
+}
+function heavyGlitches(){
+  clearInterval(glitchInt);
+  glitchInt=setInterval(()=>{
+    if(Math.random()>.45)staticBurst(.14+Math.random()*.14,.09+Math.random()*.09);
+    if(Math.random()>.78)wf();if(Math.random()>.72)rf();
+    if(Math.random()>.85)bf();if(Math.random()>.88)alarmPulse();
+  },1400);
+}
+</script>
 </body>
 </html>
